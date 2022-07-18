@@ -47,8 +47,10 @@ https://www.kaggle.com/datasets/debajyotipodder/co2-emission-by-vehicles
     ### 3. Modelling Evaluation
     
     - Algorithms used
-        - Bayesian Linear Regression
+        - Bayesian Linear Regression (1 Approach)
+        - Bayesian Linear Regression (2 Approach
         - Bayesian Poisson Regression
+        - Bayesian Poisson Overdispersion Regression
         - Bayesian Poisson Hierarchical model
     - Metrics:  RMSE (Root Mean Squared Error)
 
