@@ -14,7 +14,7 @@
 
 ### C02 Emission count prediction using Bayesian Model
 This dataset captures the details of how CO2 emissions by a vehicle can vary with the different features. The dataset has been taken from Canada Government official open data website.This contains data over a period of 7 years. 
-Thus, using Bayesian model to predict the count of C02 emission could be useful in solve this problem
+Thus, using Bayesian model to predict the count of C02 emission could be useful in solve this dangerous problem
 
 ### 1. Problem Statement
 Predicting the count of C02 emission given some qualitative and quantitative attribute.
