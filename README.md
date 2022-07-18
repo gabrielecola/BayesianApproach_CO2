@@ -54,5 +54,5 @@ https://www.kaggle.com/datasets/debajyotipodder/co2-emission-by-vehicles
 
     ### 4. Results
     
-  <img src="https://user-images.githubusercontent.com/103529789/179556985-2ff48780-79d1-40af-8a83-9da93f2b9a24.png" width="350"/>
+  <img src="https://user-images.githubusercontent.com/103529789/179556985-2ff48780-79d1-40af-8a83-9da93f2b9a24.png" width="650"/>
     
