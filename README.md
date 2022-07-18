@@ -51,7 +51,7 @@ https://www.kaggle.com/datasets/debajyotipodder/co2-emission-by-vehicles
         - Bayesian Linear Regression (2 Approach
         - Bayesian Poisson Regression
         - Bayesian Poisson Overdispersion Regression
-        - Bayesian Poisson Hierarchical model
+        - Bayesian Hierarchical Poisson model
     - Metrics:  RMSE (Root Mean Squared Error)
 
     ### 4. Results
