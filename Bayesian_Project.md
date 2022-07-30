@@ -366,7 +366,7 @@ $$Y_{i
 
 with the default prior:
 
-$$\beta_{0}^{(0)}\sim \mathcal{N}(\beta_{0}|501,(2.5))$$ \\ $$\beta_{j}^{(0)}\sim \mathcal{N}(\beta_{j}|0,(2.5))$$ \\ $$\sigma^{(0)}\sim Exp(1)$$
+$$\beta_{0}^{(0)}\sim \mathcal{N}(\beta_{0}|501,(2.5))$$  $$\beta_{j}^{(0)}\sim \mathcal{N}(\beta_{j}|0,(2.5))$$  $$\sigma^{(0)}\sim Exp(1)$$
 for the Intercept, Stan specify a mean such that correspond to sample mean of  response variable in this cases is equal to 500.
 
 
@@ -926,8 +926,8 @@ posterior_interval(stan_model)
 ##### 5.1.4 ASSES THE MODEL FIT
 
 
-$$R^{2}=\frac{Var_{\mu}}{Var_{\mu}+Var_{res}} $$
-where $Var_{\mu}$is variance of modelled predictive median\
+$$R^{2}=\frac{Var_{\mu}}{Var_{\mu}+Var_{res}}$$
+where $Var_{\mu}$ is variance of modelled predictive median\
 and $Var_{res}$ is the modelled residual variance.\
 Specifically both of these are computed only using posterior quantities from the fitted model.
 
@@ -1039,7 +1039,7 @@ In order to compare the quality of the posterior predictions of two model we ado
 
 The $elpd$ is the theoretical expected log pointwise predictive density
 
-$$ E[log \ p(y_{pred}|y_{1}M_{1})]=\int_{pred}p_{y}(y_{pred})\ log \ p(y_{pred}|y_{1},M_{1})dy_{pred}$$
+$$E[log \ p(y_{pred}|y_{1}M_{1})]=\int_{pred}p_{y}(y_{pred})\ log \ p(y_{pred}|y_{1},M_{1})dy_{pred}$$
 The intuition behind Equation is that we are evaluating the predictive distribution of $M_{1}$
   over all possible future data weighted by how likely the future data is according to its true distribution. This means that observations that are very likely according to the true model will have a higher weight than unlikely ones.
 
@@ -1047,7 +1047,7 @@ $M_{1}$ is the candidate model \
 $p_{y}$ is true data generating distribution \
 $y_{pred}$ is the unobserved data \
 $$\ log \ p(y_{pred}|y_{1},M_{1})$$ 
-If new observations are well-accounted by the posterior predictive distribution, then the density of the posterior predictive distribution is high and so is its logarithm. \
+If new observations are well-accounted by the posterior predictive distribution, then the density of the posterior predictive distribution is high and so is its logarithm. 
 
 
 Finally, If we consider a set of models, the model with the highest $elpd$  is the model with the predictions that are the closest to the ones of the true data generating process.
@@ -1058,9 +1058,9 @@ Pointwise because you are calculating predictive density values for each point o
 
 Now, we use the loo package to calculate the elpd, that is estimated using cross-validation.
 
-$Procedure$: \
-1. We compare the elpd_loo of the two models, and which one is higher, probably is the better model. In  this case is model_1 \
-2. After we see the elpd_diff, if there will be a positive difference score, means that the second model is favored , whereas a \ negative score would indicate a preference for the first model. In this case , we prefer model_1 because has the difference is negative.
+$Procedure$: 
+1. We compare the elpd_loo of the two models, and which one is higher, probably is the better model. In  this case is model_1 
+2. After we see the elpd_diff, if there will be a positive difference score, means that the second model is favored , whereas a is negative score would indicate a preference for the first model. In this case , we prefer model_1 because has the difference is negative.
 
 
 Useful information
@@ -1139,7 +1139,7 @@ with the sampling model:
 $$Y_{i}\sim \mathcal{N}(Y_{i}|\beta^{T}x_{i},\sigma)$$
 
 With the following prior:
-$$\beta_{0}\sim \mathcal{N}(\beta_{0}|500,25) \\ \beta_{j}\sim \mathcal{N}(\beta_{j}|0,0.01) \\ \sigma\sim Exp(1) $$
+$$\beta_{0}\sim \mathcal{N}(\beta_{0}|500,25)$$  $$\beta_{j}\sim \mathcal{N}(\beta_{j}|0,0.01)$$  $$\sigma\sim Exp(1)$$
 
 
 
