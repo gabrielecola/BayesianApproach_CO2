@@ -19,16 +19,16 @@ The main attributes : \
 
 - $\textbf{make}$: Company of the vehicle ( 42 groups)
 - $\textbf{model}$ : Car Model
-- $\textbf{vehicle_class}$:  Class of Vehicle depending on their utility,capacity and weight
-- $\textbf{engine_size_l}$ : Size of engine used in Litre
+- $\textbf{vehicle class}$:  Class of Vehicle depending on their utility,capacity and weight
+- $\textbf{engine size}$ : Size of engine used in Litre
 - $\textbf{cylinders}$ : Number of cylinders
 - $\textbf{transmission}$ : Transmission type with number of gears
-- $\textbf{fuel_type}$: Type of Fuel used : (X=Regular gasoline,Z=Premium gasoline,Diesel,Ethanol,Natural Gas)
-- $\textbf{fuel_consumption_city_l_100_km}$: City fuel consumption ratings are shown in litres per 100 kilometres 
-- $\textbf{fuel_consumption_hwy_l_100_km}$: Highway fuel consumption ratings are shown in litres per 100 kilometres 
-- $\textbf{fuel_consumption_comb_l_100_km}$: City fuel consumption ratings are shown in  miles per gallon
-- $\textbf{fuel_consumption_comb_mpg}$: Highway fuel consumption ratings are shown in  miles per gallon
-- $\textbf{co2_emissions_g_km}$: The tailpipe emissions of carbon dioxide (in grams per kilometre) for combined city and highway driving
+- $\textbf{fuel type}$: Type of Fuel used : (X=Regular gasoline,Z=Premium gasoline,Diesel,Ethanol,Natural Gas)
+- $\textbf{fuel consumption city}$: City fuel consumption ratings are shown in litres per 100 kilometres 
+- $\textbf{fuel consumption hwy}$: Highway fuel consumption ratings are shown in litres per 100 kilometres 
+- $\textbf{fuel consumption comb}$: City fuel consumption ratings are shown in  miles per gallon
+- $\textbf{fuel consumption comb mpg}$: Highway fuel consumption ratings are shown in  miles per gallon
+- $\textbf{co2 emissions}$: The tailpipe emissions of carbon dioxide (in grams per kilometre) for combined city and highway driving
 
 
 ```r
