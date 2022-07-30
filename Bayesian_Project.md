@@ -1691,7 +1691,7 @@ paste(G_test_beta)
 In general we can not rejected the stationary hypothesis.
 
 $Effective \ sample\ size$ 
-$$ESS = \frac{G}{1+2 \sum_{g=1}^{G} acf_g}$$ 
+$$ESS = \frac{G}{1+2 \sum_{g=1} acf_g}$$ 
 with G the number of post burn-in in MCMC samples. 
 If all $acf_g = 0$, then $ESS = G$.
 
@@ -1723,9 +1723,9 @@ In general the estimated values of coefficients are good. In some cases it can b
 Now we want to check if posterior distribution is a good approximation of the true distribution. Firstly, we have obtained posterior $\lambda^{(s)}$ values from JAGS output and then we determine posterior predicted values sampling randomly from a Poisson distribution with posterior lambda vector as parameter vector.
 
 Posterior predicted distribution: 
-$$p(y^*| y_1,y_2,...,y_n) = \int p(y^*|\theta) \ p(\theta|y_1,y_2,...,y_n) \  d\theta$$ 
-Future values $Y^*$ and $(Y_1,...Y_2)$ are independent conditionally on $\theta$: 
-$$Y^* \perp (Y_1,Y_2,...,Y_n) \ | \ \theta$$ 
+$$p(y^*| y_1,y_2,...,y_n) = \int p(y^*|\theta) \ p(\theta|y_1,y_2,...,y_n) \  d\theta$$ \
+Future values $Y^*$ and $(Y_1,...Y_2)$ are independent conditionally on $\theta$: \
+$$Y^* \perp (Y_1,Y_2,...,Y_n) \ | \ \theta$$ \
 We can sample from a Poisson distribution with posterior parameters (JAGS output). Then we obtain predictive posterior distribution.
 
 
