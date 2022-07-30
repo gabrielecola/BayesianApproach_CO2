@@ -1612,8 +1612,7 @@ It is possible to see that in general there are no evident strange patterns and 
 
 $Autocorrelation \ plot$
 
-It is relevant to check if there is a strong autocorrelation between values taking into consideration different lags. For a generic sequence of numbers ${\theta_1, ..., \theta_S}$, the lag-k autocorrellation function estimates the correlation between elements of the sequence that are k steps apart: $$acf_k(\theta)=\frac{\frac{1}{S-k} \sum_{s=1}^{S-k}(\theta^{(s)}-\bar\theta)(\theta^{(s-k)}-\bar\theta)}{\frac{1}{S-k}\sum_{s=1}^{S-k}(\theta^{(s)}-
-\bar\theta)^2}$$ where $\bar\theta = \frac{1}{S-k} \sum_{s=1}^{S-k}\theta^{(s)}$. For $k = 0$, $acf_0(\theta) = 0$.
+It is relevant to check if there is a strong autocorrelation between values taking into consideration different lags. For a generic sequence of numbers $${\theta_1, ..., \theta_S}$$ the lag-k autocorrellation function estimates the correlation between elements of the sequence that are k steps apart: $$acf_k(\theta)=\frac{\frac{1}{S-k} \sum_{s=1} (\theta^{(s)}-\bar\theta)(\theta^{(s-k)}-\bar\theta)}{\frac{1}{S-k}\sum_{s=1} (\theta^{(s)}-\bar\theta)^2}$$ where $\bar\theta = \frac{1}{S-k} \sum_{s=1}\theta^{(s)}. For $k = 0$, $acf_0(\theta) = 0$.
 
 $\beta_j$ JAGS output
 
