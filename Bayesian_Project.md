@@ -15,7 +15,7 @@ output:
 #### 1. IMPORT DATASET
 
 This dataset captures the details of how CO2 emissions by a vehicle can vary with the different features. The dataset has been taken from Canada Government official open data website.This is a compiled version. This contains data over a period of 7 years. There are total 7385 rows and 12 columns.
-The main attributes : \
+The main attributes : 
 
 - $\textbf{make}$: Company of the vehicle ( 42 groups)
 - $\textbf{model}$ : Car Model
@@ -125,7 +125,7 @@ summary(co2_emission)
 
 ##### 2.2 SCALING VARIABLE
 
-We transform $co2_emissions_g_km$ ,$fuel_consumption_city_l_100_km$,$fuel_consumption_hwy_l_100_km$  in order to express them in the same scale ( 1 Litre for 1 kilometre)
+We transform $co2\ emissions$ ,$fuel\ consumption\ city$,$fuel\ consumption \ hwy$  in order to express them in the same scale ( 1 Litre for 1 kilometre)
 
 
 ```r
@@ -153,20 +153,20 @@ corrplot(cor_matrix, method="number",tl.cex=0.5,number.digits = 1)
 ![](Bayesian_Project_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 We can notice a high correlation between variables both positive and negative.
-We also spot that our response variable $co2_emissions_g_km$ is highly correlated with the other variable so
+We also spot that our response variable $co2\ emissions$ is highly correlated with the other variable so
 we pursue our analysis with a scatterplot in order to understand better the relationships.
 
 
 
 
 
-$Scatterplot$ \
+$Scatterplot$ 
 
 
-1. $Fuel\ consumption\ city$ has positively  relationship with $Co2\ emission$, if $Fuel\ consumption \ city$ rise also $Co2\ emission$.\
-2. $Cylinders$ has positively  relationship with $Co2 \ emission$, if $Cylinders$ rise also $Co2\ emission$.\
-3. $Engine \ size$ has positively  relationship with $Co2\ emission$, if $Engine \ size$ rise also $Co2\ emission$.\
-4. $Fuel\ consumption \ highway$ has positively  relationship with $Co2 \ emission$, if $Fuel\ consumption \ highway$ rise also $Co2\ emission$.\
+1. $Fuel\ consumption\ city$ has positively  relationship with $Co2\ emission$, if $Fuel\ consumption \ city$ rise also $Co2\ emission$.
+2. $Cylinders$ has positively  relationship with $Co2 \ emission$, if $Cylinders$ rise also $Co2\ emission$.
+3. $Engine \ size$ has positively  relationship with $Co2\ emission$, if $Engine \ size$ rise also $Co2\ emission$.
+4. $Fuel\ consumption \ highway$ has positively  relationship with $Co2 \ emission$, if $Fuel\ consumption \ highway$ rise also $Co2\ emission$.
 
 ```r
 fuelcity_scatter<-ggplot(co2_emission, aes(x=fuel_consumption_city_l_100_km , y=co2_emissions_g_km )) +
@@ -366,12 +366,12 @@ $$Y_{i
 
 with the default prior:
 
-$$\beta_{0}^{(0)}\sim \mathcal{N}(\beta_{0}|501,(2.5)) \\ \beta_{j}^{(0)}\sim \mathcal{N}(\beta_{j}|0,(2.5)) \\ \sigma^{(0)}\sim Exp(1) $$
+$$\beta_{0}^{(0)}\sim \mathcal{N}(\beta_{0}|501,(2.5))$$ \\ $$\beta_{j}^{(0)}\sim \mathcal{N}(\beta_{j}|0,(2.5))$$ \\ $$\sigma^{(0)}\sim Exp(1)$$
 for the Intercept, Stan specify a mean such that correspond to sample mean of  response variable in this cases is equal to 500.
 
 
-Where our p predictors are: $\textbf{Intercept}$, $\textbf{engine_size_l}$, $\textbf{cylinders}$,$\textbf{fuel_consumption_city_l_100_km}$, $\textbf{fuel_consumption_hwy_l_100_km}$,
-$\textbf{fuel_type}$, $\textbf{make}$ \ 
+Where our p predictors are: $\textbf{Intercept}$, $\textbf{engine size}$, $\textbf{cylinders}$,$\textbf{fuel consumption city}$, $\textbf{fuel consumption hwy}$,
+$\textbf{fuel type}$, $\textbf{make}$ 
 
 
 ```r
@@ -506,7 +506,7 @@ as.table(res)
 
 $\textbf{Median}$: regardless of the estimation algorithm, point estimates are medians computed from simulations.The simulations are generated from the asymptotic Gaussian sampling distribution of the parameters.
 
-$\textbf{MAD_SD}$: The standard deviations reported (labeled MAD_SD in the print output) are computed from the same set of draws described above. Compared to the raw posterior standard deviation, the MAD_SD will be more robust for long-tailed distributions. 
+$\textbf{MAD SD}$: The standard deviations reported (labeled MAD_SD in the print output) are computed from the same set of draws described above. Compared to the raw posterior standard deviation, the MAD_SD will be more robust for long-tailed distributions. 
 
 
 ```r
@@ -587,22 +587,22 @@ stan_model
 
 ##### 5.1.1 MODEL DIAGNOSTIC
 
-$Summary \ info$ \
-- mean: the point estimate for the parameter \
+$Summary \ info$ 
+- mean: the point estimate for the parameter 
 - sd: standard error for the point estimate
 
-$Quick \ Diagnostic$ \
+$Quick \ Diagnostic$ 
 
--$\textbf{mean_PPD}$: mean(sample average) of the posterior predictive distribution (hopefully on par with the mean of the target variable (cO2-emission),if it is plausible then is a probable sign that our model is good in general)
+$\textbf{mean {PPD}}$: mean(sample average) of the posterior predictive distribution (hopefully on par with the mean of the target variable (cO2-emission),if it is plausible then is a probable sign that our model is good in general)
 
 
 $\textbf{Monte Carlo Standard Error}$: The standard error of the mean of the posterior draws. Want mcse than 10% of the posterior standard deviation.
 
-$\textbf{n_eff}$(The effective sample size): is an estimate of the effective number of independent draws from the posterior distribution of the estimand of interest. Because the draws within a chain are not independent if there is autocorrelation, the effective sample size will be smaller than the total number of iterations. Should be greater than 10% of max.
+$\textbf{neff}$(The effective sample size): is an estimate of the effective number of independent draws from the posterior distribution of the estimand of interest. Because the draws within a chain are not independent if there is autocorrelation, the effective sample size will be smaller than the total number of iterations. Should be greater than 10% of max.
 
-$$ESS=\frac{G}{1+2\sum_{g=1}^G ACF_{g}}$$
+$$ESS=\frac{G}{1+2\sum_{g=1} ACF_{g}}$$
 
-$$where \ G= \frac{Iteration - warmup}{Thinning}= \frac{3000-500}{3}=833 $$
+$$where \ G= \frac{Iteration - warmup}{Thinning}= \frac{3000-500}{3}=833$$
 
 
 $\hat{R}$ :  measures the ratio of the average variance of samples within each chain to the variance of the pooled samples across chains; if all chains are at equilibrium, these will be the same and $\hat{R}$ will be one. Desire less than 1.1.
@@ -766,7 +766,8 @@ $\hat{R}$ values are less than 1.1 so we this a sign that the chain reached the 
 ##### 5.1.2 MCMC DIAGNOSTIC
 
 
-$Trace \ Plot$ \ 
+$Trace \ Plot$ 
+
 It shows the estimated value of parameter at each iteration for each chain.It is used to check if the chains has reached the convergence.Furthermore,the iteration are discarded by the warmup(burn-in and thinning)
 
 Both $\hat{R}$ and $Trace \ Plot$ gives us information about the stability of our parameter/estimates.
