@@ -1320,7 +1320,7 @@ summary(stan_model_spec)
 
 ##### 5.2.2 MCMC DIAGNOSTIC
 
-$TRACE PLOT$
+$TRACE\ PLOT$
 
 ```r
 posterior_chains3 <- as.array(stan_model_spec)
@@ -1347,7 +1347,7 @@ chains_trace_make_spec
 
 ![](Bayesian_Project_files/figure-html/unnamed-chunk-35-3.png)<!-- -->
 
-$AFC PLOT$
+$AFC\ PLOT$
 
 ```r
 afc_quant_spec<-mcmc_acf(posterior_chains3,lags=15,pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"))
