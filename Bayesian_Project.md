@@ -1722,10 +1722,10 @@ In general the estimated values of coefficients are good. In some cases it can b
 
 Now we want to check if posterior distribution is a good approximation of the true distribution. Firstly, we have obtained posterior $\lambda^{(s)}$ values from JAGS output and then we determine posterior predicted values sampling randomly from a Poisson distribution with posterior lambda vector as parameter vector.
 
-Posterior predicted distribution: 
-$$p(y^*| y_1,y_2,...,y_n) = \int p(y^*|\theta) \ p(\theta|y_1,y_2,...,y_n) \  d\theta$$ \
-Future values $Y^*$ and $(Y_1,...Y_2)$ are independent conditionally on $\theta$: \
-$$Y^* \perp (Y_1,Y_2,...,Y_n) \ | \ \theta$$ \
+Posterior predicted distribution: \
+$$p(y_{pred}| y_1,y_2,...,y_n)= \int p(y_{pred}|\theta) \ p(\theta|y_1,y_2,...,y_n) \  d\theta$$ \
+Future values $Y_{pred}$ and $(Y_1,...Y_2)$ are independent conditionally on $\theta$: \
+$$Y_{pred} \perp (Y_1,Y_2,...,Y_n) \ | \ \theta$$ \
 We can sample from a Poisson distribution with posterior parameters (JAGS output). Then we obtain predictive posterior distribution.
 
 
@@ -1751,7 +1751,7 @@ ppc_dens_overlay(y, yrep[1:100, ])
 
 Through the plot, it can be seen that predicted posterior distribution is similar to the empirical distribution of Y. On the other hand, the graph shows some differences in the left tail and in the peak of distribution.
 
-Now, we compare the observed value of two statistics (mean, standard deviation) and the corresponding distribution of the two statistics $t(Y^*_{1:n})$. We have to check if the observed statistic lie in the distribution of $t(Y^*_{1:n})$.
+Now, we compare the observed value of two statistics (mean, standard deviation) and the corresponding distribution of the two statistics $t(Y_{1:n}^{pred})$. We have to check if the observed statistic lie in the distribution of $t(Y_{1:n}^{pred})$.
 
 
 ```r
