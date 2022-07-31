@@ -1730,8 +1730,6 @@ We can sample from a Poisson distribution with posterior parameters (JAGS output
 
 
 
-
-
 ```r
 post.lambda <- model_run$BUGSoutput$sims.list$lambda
  # I store everything in this matrix
