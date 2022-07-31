@@ -1841,6 +1841,8 @@ knitr::kable(result)
 |fuel_typeZ                     |            -0.1188176|
 |fuel_consumption_city_l_100_km |             0.0004827|
 |fuel_consumption_hwy_l_100_km  |             0.0003440|
+
+
 $Credible \ Interval \ with \ \alpha=0.05 \ significance \ level$
 
 ```r
@@ -1909,6 +1911,8 @@ knitr::kable(result)
 |fuel_typeZ                     |  -0.1276818|  -0.1101694|
 |fuel_consumption_city_l_100_km |   0.0004670|   0.0004979|
 |fuel_consumption_hwy_l_100_km  |   0.0003243|   0.0003629|
+
+
 The credible interval of engine size contains zero value, so we can conclude that it has no significance effect on our response.
 In general the levels of variable make result significance, so we can proceed our analysis to study better the effect of each dummy level. 
 
