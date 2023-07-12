@@ -1,0 +1,1505 @@
+---
+title: "A Bayesian Approach to contrast CO2 Emission"
+author: "Gabriele Cola, Maria Chiara Tarsi"
+date: "18/07/2022"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(janitor)
+library(corrplot)
+library(patchwork)
+library(wesanderson)
+library(rjags)
+library(rstanarm)
+library(loo)
+library(MLmetrics)
+library(AER)
+library(bayesplot)
+```
+
+
+#### 1. IMPORT DATASET
+
+This dataset captures the details of how CO2 emissions by a vehicle can vary with the different features. The dataset has been taken from Canada Government official open data website.This is a compiled version. This contains data over a period of 7 years. There are total 7385 rows and 12 columns.
+The main attributes : \
+
+- $\textbf{make}$: Company of the vehicle ( 42 groups)
+- $\textbf{model}$ : Car Model
+- $\textbf{vehicle_class}$:  Class of Vehicle depending on their utility,capacity and weight
+- $\textbf{engine_size_l}$ : Size of engine used in Litre
+- $\textbf{cylinders}$ : Number of cylinders
+- $\textbf{transmission}$ : Transmission type with number of gears
+- $\textbf{fuel_type}$: Type of Fuel used : (X=Regular gasoline,Z=Premium gasoline,Diesel,Ethanol,Natural Gas)
+- $\textbf{fuel_consumption_city_l_100_km}$: City fuel consumption ratings are shown in litres per 100 kilometres 
+- $\textbf{fuel_consumption_hwy_l_100_km}$: Highway fuel consumption ratings are shown in litres per 100 kilometres 
+- $\textbf{fuel_consumption_comb_l_100_km}$: City fuel consumption ratings are shown in  miles per gallon
+- $\textbf{fuel_consumption_comb_mpg}$: Highway fuel consumption ratings are shown in  miles per gallon
+- $\textbf{co2_emissions_g_km}$: The tailpipe emissions of carbon dioxide (in grams per kilometre) for combined city and highway driving
+
+```{r message = FALSE}
+co2<-read_csv('/Users/gabrielecola/BayesianApproach_CO2/Data/CO2\ Emissions_Canada.csv')
+glimpse(co2)
+```
+
+#### 2. PRE-PROCESSING 
+##### 2.1 CHECKING THE MISSING  VALUE
+```{r}
+sum(is.na(co2))
+```
+
+##### 2.2 CLEANING THE NAME OF VARIABLE
+```{r}
+co2_emission<- co2 %>% clean_names(case='snake')
+glimpse(co2_emission)
+summary(co2_emission)
+```
+
+##### 2.2 SCALING VARIABLE
+
+We transform $co2_emissions_g_km$ ,$fuel_consumption_city_l_100_km$,$fuel_consumption_hwy_l_100_km$  in order to express them in the same scale ( 1 Litre for 1 kilometre)
+
+```{r}
+co2_emission <- co2_emission %>% 
+  mutate(co2_emissions_g_km = 2 * co2_emissions_g_km) %>%
+  mutate(fuel_consumption_city_l_100_km = 100 * fuel_consumption_city_l_100_km)%>%   
+  mutate(fuel_consumption_hwy_l_100_km = 100 * fuel_consumption_hwy_l_100_km) %>%
+  mutate(make = as.factor(co2_emission$make)) %>%
+  mutate(fuel_type=as.factor(co2_emission$fuel_type))
+
+```
+
+
+
+#### 3. EDA
+$HeatMap$ \
+We use a heatmap to see clearly the correlation matrix: 
+
+```{r}
+co2_corr <- co2_emission %>%  select(-make,-model,-transmission,-vehicle_class,-fuel_type)
+cor_matrix<-cor(co2_corr)
+corrplot(cor_matrix, method="number",tl.cex=0.5,number.digits = 1)
+```
+
+We can notice a high correlation between variables both positive and negative.
+We also spot that our response variable $co2_emissions_g_km$ is highly correlated with the other variable so
+we pursue our analysis with a scatterplot in order to understand better the relationships.
+
+
+
+
+
+$Scatterplot$ \
+
+
+1. $Fuel\ consumption\ city$ has positively  relationship with $Co2\ emission$, if $Fuel\ consumption \ city$ rise also $Co2\ emission$.\
+2. $Cylinders$ has positively  relationship with $Co2 \ emission$, if $Cylinders$ rise also $Co2\ emission$.\
+3. $Engine \ size$ has positively  relationship with $Co2\ emission$, if $Engine \ size$ rise also $Co2\ emission$.\
+4. $Fuel\ consumption \ highway$ has positively  relationship with $Co2 \ emission$, if $Fuel\ consumption \ highway$ rise also $Co2\ emission$.\
+```{r}
+fuelcity_scatter<-ggplot(co2_emission, aes(x=fuel_consumption_city_l_100_km , y=co2_emissions_g_km )) +
+  geom_jitter(aes(colour= fuel_consumption_city_l_100_km),width=0.5)+
+  scale_color_gradient(name = "Fuel consumption city",low="pink", high='purple')+
+  xlab('fuel consumption city')+
+  ylab('co2 emission') 
+
+
+
+cylinders_scatter<-ggplot(co2_emission, aes(x=cylinders,y=co2_emissions_g_km)) +
+  geom_jitter(aes(colour = cylinders))+
+  xlab('Cylinders')+
+  ylab('co2 emission')
+
+engine_scatter<-ggplot(co2_emission, aes(x=engine_size_l, y=co2_emissions_g_km)) +
+  geom_jitter(aes(colour=engine_size_l))+
+  scale_color_gradient(name = "Engine size ",low="green", high="darkgreen")+
+  xlab('engine size')+
+  ylab('co2 emissions')
+  
+
+fuelhw_scatter<-ggplot(co2_emission, aes(x=fuel_consumption_hwy_l_100_km, y=co2_emissions_g_km)) +
+  geom_jitter(aes(colour=fuel_consumption_hwy_l_100_km))+
+  scale_color_gradient(name = "Fuel consumption hwy",low="yellow", high="orange")+
+  xlab('fuel consumption highway')+
+  ylab('co2 emissions')
+  
+  
+
+fuelcity_scatter+cylinders_scatter+ engine_scatter+fuelhw_scatter
+```
+
+
+Here we create a Dataframe that reports the total count of emission for each vehicle class.
+```{r,results='hide'}
+data_emission<- co2_emission %>% group_by(vehicle_class) %>% distinct(vehicle_class,co2_emissions_g_km)%>% summarize(count=sum(co2_emissions_g_km))%>% arrange(desc(count))
+head(data_emission)
+```
+
+In this two graph we want to analyze the variable $vehicle\ class$, firstly with geom_bar so we look to the frequency of each $vehicle\ class$,and then with geom_col to see the overall emission for each $vehicle\ class$.
+```{r}
+
+j<-ggplot() + geom_col(data =data_emission, aes(x = reorder(vehicle_class,count), y = count,fill=vehicle_class))+
+  scale_fill_discrete(name = "vehicle class")+
+  xlab('vehicle class')+
+  ylab('Co2 emission')+
+  coord_flip() +
+  labs(title = "The total C02 emission")
+  
+  
+# need to order the bar
+m<-ggplot(data = co2_emission) +
+  geom_bar(mapping = aes(x = vehicle_class ,fill=vehicle_class ))+
+  scale_fill_discrete(name = "vehicle_class")+
+  xlab('vehicle_class')+
+  coord_flip() +
+  labs(title = "Bar chart ")
+
+
+m + theme(text = element_text(size = 5),plot.title=element_text(size = 9),axis.title.x=element_text(size = 8),axis.title.y=element_text(size = 8),legend.title=element_text(size = 7),legend.position = "none")  + j + theme(text = element_text(size = 5), plot.title=element_text(size = 9),axis.title.x=element_text(size = 8),axis.title.y=element_text(size = 8),legend.title=element_text(size = 7))
+                                                                                        
+
+```
+
+
+Now our focus is on variable $Fuel \ type$,so we decide to choose a boxplot for each $Fuel \ type$.
+We have observed that the highest median of emission is produced by Ethanol and followed by Premium Gasoline; and also
+we spot that few Fuel type adopted Natural Gas.
+
+Furthermore, we used a density plot to see how the Co2 emission density changed in base of Fuel type.
+We spot the same pattern that we saw in box plot.
+```{r,warning=FALSE}
+boxplot<-ggplot(aes(x=fuel_type , y = co2_emissions_g_km  ),data=co2_emission)+
+  geom_boxplot(aes(fill=fuel_type)) +
+  theme_bw()+
+  xlab('Fuel Type')+
+  ylab('Co2 Emission')+
+  scale_fill_discrete(name = "season")+
+  labs(title = "Boxplot of Fuel Type ")
+
+
+density_plot_fuel <- ggplot(co2_emission, aes(x =co2_emissions_g_km , fill =fuel_type )) + 
+  geom_density(alpha = 0.5) +
+  xlab('C02 Emission') +
+  labs(title = "Density Plot ", caption = "D:Diesel, E:Ethanol, N:Natural Gas, X:Regular gasoline, Z:Premium gasoline")
+  
+  
+
+boxplot+theme(plot.caption = element_text(size=5.5),legend.text = element_text(size=6)) + density_plot_fuel +
+  theme(legend.text = element_text(size=6),plot.caption = element_text(size=8))
+
+```
+
+
+Now our focus is on $Transmission$, through this plot we want to spot the C02 emission of each Transmission.
+We can notice that the highest peaks of emission is produce by AM6 and in general the transmission that produce 
+more C02 Emission is Automatic and Automatic with select shift
+```{r}
+c<-ggplot(data =co2_emission , aes(transmission,co2_emissions_g_km  )) +
+  geom_line(color = "steelblue") +
+  geom_point(color="steelblue") +
+  xlab('Transmission')+
+  ylab('Co2 Emission')+
+    labs(title = "The C02 Emission for each Transmission ", caption = "A = Automatic, AM = Automated manual, AS = Automatic with select shift, AV = Continuously variable, M = Manual, 3 - 10 = Number of gears")
+c + theme(text = element_text(size = 7),plot.caption = element_text(size=6.5),plot.title=element_text(size = 10),
+          axis.title.x=element_text(size = 9),axis.title.y=element_text(size = 9))   
+```
+
+
+
+
+Here we create a Dataframe that reports the total count of emission for each $car \ manufacturer$.
+```{r}
+data_emission_new<- co2_emission %>% group_by(make) %>% distinct(make,co2_emissions_g_km)%>% summarize(count=sum(co2_emissions_g_km))%>% arrange(desc(count))
+```
+
+The plot shows the total count of C02 Emission of each company, we can notice that 
+Chevrolet, Ford ,Mercedes-Benz are the ones that produce the most C02 emission.
+```{r}
+a<-ggplot() + geom_col(data =data_emission_new, aes(x = reorder(make,count), y = count,fill=make))+
+  scale_fill_discrete(name = "Make")+
+  xlab('Make')+
+  ylab('Co2 emission')+
+  coord_flip()+
+  labs(title = "The total Emission for each company")
+
+a +  theme(legend.text = element_text(size=4),axis.text.y = element_text(size=7))
+```
+
+
+We want to examine the distribution of our response variable $Y$
+```{r}
+ggplot(co2_emission, aes(x=co2_emissions_g_km)) + 
+ geom_histogram(aes(y=..density..), colour="orange", fill="lightblue",bins=30)+
+ geom_density(alpha=.2, fill="black") +
+  geom_vline(aes(xintercept=mean(co2_emissions_g_km )),
+            color="green", linetype="dashed", size=1)+
+  labs(title = "The distribution of Y")+
+  xlab('C02 Emission')
+
+```
+
+Looking at the plot we can assume that our response could follow a Poisson distribution, but we know that for large count we can
+approximate to a Normal Distribution. We start our analysis with a $Bayesian \ Linear  \ Regression$ and after we implement
+a $Poisson\ Regression\ model$.
+Finally we focus on the effect of different vehicle companies on C02 emission so we decide to fit an $Hierarchical \ Poisson \ Regression\ model$.
+
+### 4. Feature Engineering
+
+We remove fuel_consumption_comb_l_100_km,fuel_consumption_comb_mpg because have an high correlation with other variable such as :
+fuel_consumption_hwy_l_100_km,fuel_consumption_hwy_l_100_km, that are the same variable but with different scale.
+Furthermore we remove also some qualitative variable in order to avoid computational issues.
+
+```{r}
+new_emission<- co2_emission %>% select(-fuel_consumption_comb_l_100_km,-fuel_consumption_comb_mpg,-vehicle_class,-transmission,-model)
+```
+
+
+### 5. Model
+We split the Datasets in Train ($70 \%$) and Test set ($30\%$)
+```{r}
+set.seed(123) 
+sample <- sample.int(n = nrow(new_emission), size = floor(.70*nrow(new_emission)), replace = F)
+train.emission <- new_emission[sample, ]
+test.emission  <- new_emission[-sample, ]
+```
+
+
+
+##### 5.1 BAYESIAN LINEAR REGRESSION (1 APPROACH)
+
+
+Our $Model$ is:
+
+$$Y=\beta_{0}+\beta_{1}x_{1}+...\beta_{p}x_{p}+ \epsilon \\ with\ p=50 \ and\ \epsilon \sim \ \mathcal{N}(0,1)$$  
+with the sampling model:
+$$Y_{i
+}\sim \mathcal{N}(Y_{i}|\beta^{T}x_{i},\sigma)$$
+
+
+with the default prior:
+
+$$\beta_{0}^{(0)}\sim \mathcal{N}(\beta_{0}|501,(2.5)) \\ \beta_{j}^{(0)}\sim \mathcal{N}(\beta_{j}|0,(2.5)) \\ \sigma^{(0)}\sim Exp(1) $$
+for the Intercept, Stan specify a mean such that correspond to sample mean of  response variable in this cases is equal to 500.
+
+
+Where our p predictors are: $\textbf{Intercept}$, $\textbf{engine_size_l}$, $\textbf{cylinders}$,$\textbf{fuel_consumption_city_l_100_km}$, $\textbf{fuel_consumption_hwy_l_100_km}$,
+$\textbf{fuel_type}$, $\textbf{make}$ \ 
+
+```{r,results='hide'}
+stan_model <- stan_glm (co2_emissions_g_km  ~ engine_size_l + cylinders+ fuel_consumption_city_l_100_km+fuel_consumption_hwy_l_100_km+fuel_type+make,
+chains=4,
+iter=3000,
+warmup=500 ,
+thin=3,
+data=train.emission)
+```
+
+$Brief \ Summary$ \
+$\textbf{Intercept}$: For the intercept, the default prior is normal with a standard deviation 2.5, but in this case the standard deviation was adjusted to 294. There is also a note in parentheses informing you that the prior applies to the intercept after all predictors have been centered , this because placing a prior on the intercept after centering the predictors typically makes it easier to specify a reasonable prior for the intercept. \
+
+$\textbf{Coefficients}$: By default the regression coefficients are treated as a priori independent with normal priors centered at 0 and with scale (standard deviation) 2.5.\
+rstanarm by default set a weakly informative prior that will be adjusted by the scales of the priors on the coefficients. \
+
+$\textbf{Auxiliary}$ : sigma, the error standard deviation, has a default prior that is exponential(1)
+However, as a result of the automatic rescaling, the actual scale used was 0.0085.
+Furthermore,the default prior on the auxiliary parameter is an exponential distribution with rate ($\frac{1}{\sigma_{y}}$
+
+
+$Note \ on \ data-based \ priors$ \
+Because the scaling is based on the scales of the predictors (and possibly the outcome) these are technically data-dependent priors. However, since these priors are quite wide (and in most cases rather conservative), the amount of information used is weak and mainly takes into account the order of magnitude of the variables. This enables rstanarm to offer defaults that are reasonable for many models.
+
+
+```{r}
+priors <- prior_summary(stan_model)
+priors
+```
+
+
+##### TABLE OF COEFFICIENT PRIOR 
+
+```{r}
+Distribution<- rep(c('Normal'),each=50)
+mean_prior<- c(priors$prior_intercept$location,priors$prior$location)
+sd_prior<- c(priors$prior_intercept$adjusted_scale,priors$prior$adjusted_scale)
+
+
+c <- c(Distribution,round(mean_prior,2),round(sd_prior,2))
+res <- matrix(c, ncol = 3, byrow = F)
+colnames(res) <- c('Distribution','mean','sd')
+row.names(res) <- c( 'Intercept','engine_size_l', 'cylinders', 'fuel_consumption_city_l_100_km', 'fuel_consumption_hwy_l_100_km','fuel_typeE','fuel_typeN','fuel_typeX','fuel_typeZ','makeALFA ROMEO','makeASTON MARTIN',
+                    'makeAUDI','makeBENTLEY','makeBMW','makeBUGATTI','makeBUICK','makeCADILLAC','makeCHEVROLET','makeCHRYSLER','makeDODGE','makeFIAT','makeFORD','makeGENESIS','makeGMC','makeHONDA','makeHYUNDAI','makeINFINITI','makeJAGUAR','makeJEEP',
+                    'makeKIA','makeLAMBORGHINI','makeLAND ROVER','makeLEXUS','makeLINCOLN','makeMASERATI','makeMAZDA','makeMERCEDES-BENZ','makeMINI','makeMITSUBISHI','makeNISSAN',
+                    'makePORSCHE','makeRAM','makeROLLS-ROYCE','makeSCION','makeSMART','makeSRT','makeSUBARU','makeTOYOTA',
+                    'makeVOLKSWAGEN','makeVOLVO'
+                    )
+as.table(res)
+```
+
+$\textbf{Median}$: regardless of the estimation algorithm, point estimates are medians computed from simulations.The simulations are generated from the asymptotic Gaussian sampling distribution of the parameters.
+
+$\textbf{MAD_SD}$: The standard deviations reported (labeled MAD_SD in the print output) are computed from the same set of draws described above. Compared to the raw posterior standard deviation, the MAD_SD will be more robust for long-tailed distributions. 
+
+```{r}
+stan_model
+```
+
+
+
+
+##### 5.1.1 MODEL DIAGNOSTIC
+
+$Summary \ info$ \
+- mean: the point estimate for the parameter \
+- sd: standard error for the point estimate
+
+$Quick \ Diagnostic$ \
+
+-$\textbf{mean_PPD}$: mean(sample average) of the posterior predictive distribution (hopefully on par with the mean of the target variable (cO2-emission),if it is plausible then is a probable sign that our model is good in general)
+
+
+$\textbf{Monte Carlo Standard Error}$: The standard error of the mean of the posterior draws. Want mcse than 10% of the posterior standard deviation.
+
+$\textbf{n_eff}$(The effective sample size): is an estimate of the effective number of independent draws from the posterior distribution of the estimand of interest. Because the draws within a chain are not independent if there is autocorrelation, the effective sample size will be smaller than the total number of iterations. Should be greater than 10% of max.
+
+$$ESS=\frac{G}{1+2\sum_{g=1}^G ACF_{g}}$$
+
+$$where \ G= \frac{Iteration - warmup}{Thinning}= \frac{3000-500}{3}=833 $$
+
+
+$\hat{R}$ :  measures the ratio of the average variance of samples within each chain to the variance of the pooled samples across chains; if all chains are at equilibrium, these will be the same and $\hat{R}$ will be one. Desire less than 1.1.
+
+
+```{r}
+summary(stan_model)
+# quick diagnostic
+mean(train.emission$co2_emissions_g_km)
+```
+
+We can notice that $mean_{ppd}$ is almost the same of the mean of our response variable, so this a sign that a model should be good.
+$mcse$ values respect the condition explained in theory above , because are far less than $10\%$ of the posterior standard deviation.
+$n_{eff}$ values respect the condition explained in theory above, because are more than the $10\%$ of $G$, someone have higher values of G this is due to the negative correllation.
+$\hat{R}$ values are less than 1.1 so we this a sign that the chain reached the convergence.
+
+
+
+
+
+##### 5.1.2 MCMC DIAGNOSTIC
+
+
+$Trace \ Plot$ \ 
+
+It shows the estimated value of parameter at each iteration for each chain.It is used to check if the chains has reached the convergence.Furthermore,the iteration are discarded by the warmup(burn-in and thinning)
+
+Both $\hat{R}$ and $Trace \ Plot$ gives us information about the stability of our parameter/estimates.
+
+
+```{r,warning=FALSE}
+posterior_chains <- as.array(stan_model)
+fargs <- list(ncol = 3, labeller = label_parsed) 
+
+chains_trace_quant <- mcmc_trace(posterior_chains, pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"),
+                            facet_args = fargs)
+chains_trace_quant
+
+
+chains_trace_fuel <- mcmc_trace(posterior_chains,pars = c("fuel_typeE","fuel_typeN","fuel_typeX", "fuel_typeZ"),
+       facet_args = fargs)
+chains_trace_fuel
+
+
+chains_trace_make<- mcmc_trace(posterior_chains,pars = c("makeAUDI","makeBENTLEY", "makeCHEVROLET","makeJAGUAR","makeFORD","makeLEXUS"),
+       facet_args = fargs)
+chains_trace_make
+
+```
+
+We can see that there is no problem of convergence of the MCMC
+
+
+
+$ACF \ PLOT$ \
+For the selected parameters, these functions show the autocorrelation for each Markov chain separately up to a user-specified number of lags. 
+```{r warning=FALSE}
+afc_quant<-mcmc_acf(posterior_chains,lags=15,pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"))
+afc_quant
+
+afc_fuel<-mcmc_acf(posterior_chains,lags=15,pars = c("fuel_typeE","fuel_typeN","fuel_typeX", "fuel_typeZ"))
+afc_fuel
+
+
+afc_make<- mcmc_acf(posterior_chains,lags=15,pars = c("makeAUDI","makeBENTLEY", "makeCHEVROLET","makeJAGUAR","makeFORD","makeLEXUS"))
+# Some are autocorrellated
+afc_make
+```
+
+We can see that there is no problem of autocorrellation of the MCMC, perhaps there is some high values in the first chains but 
+it is solved in the last chains.
+
+
+#### 5.1.3 PARAMETER  ANALYSIS
+We look the density plot of posterior distribution of parameters for each chain
+```{r,warning=FALSE}
+mcmc_dens_quant<- mcmc_dens_overlay(posterior_chains,pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"))
+mcmc_dens_quant
+
+mcmc_dens_fuel<- mcmc_dens_overlay(posterior_chains,pars = c("fuel_typeE","fuel_typeN","fuel_typeX", "fuel_typeZ"))
+mcmc_dens_fuel
+
+
+mcmc_dens_make<- mcmc_dens_overlay(posterior_chains,pars = c("makeAUDI","makeBENTLEY", "makeCHEVROLET","makeJAGUAR","makeFORD","makeLEXUS"))
+mcmc_dens_make
+
+```
+
+
+$Credible\ Interval$
+
+We can conclude that engine_size_l is not significant.
+```{r}
+posterior_interval(stan_model)
+```
+
+
+##### 5.1.4 ASSES THE MODEL FIT
+
+
+$$R^{2}=\frac{Var_{\mu}}{Var_{\mu}+Var_{res}} $$
+where $Var_{\mu}$is variance of modelled predictive median\
+and $Var_{res}$ is the modelled residual variance.\
+Specifically both of these are computed only using posterior quantities from the fitted model.
+
+
+```{r,warning = FALSE}
+# Save the variance of residuals
+ss_res <- var(residuals(stan_model))
+# Save the variance of fitted values
+ss_fit <- var(fitted(stan_model))
+# Calculate the R-squared
+r2<- 1 - (ss_res / (ss_res + ss_fit))
+print(paste('R Squared is :',round(r2,2)))
+```
+
+Here The $R^2$ is high so we can say that the models fits well the data.
+
+
+1. $R^{2} Posterior \ Distribution$ \
+Let's get a posterior distribution of the R-squared.
+```{r,warning = FALSE}
+r2_posterior<- bayes_R2(stan_model)
+hist(r2_posterior, main="Posterior Distribution of the R^2",col="orange",border="white")
+```
+
+##### 5.1.5 Posterior  predictive  model  checks
+
+$Posterior\ Predictive$ \
+is the distribution of possible unobserved values conditional on the observed value.
+In other words, given the posterior distributions of the parameters of the model, the posterior predictive distribution gives us some indication of what future data might look like, given the data and model of course.
+
+$$p(y^{*}|y_{1},....,y_{n})=\int\ p(y^{*}|\beta,\sigma^{2}) \ p(\beta,\sigma^{2}|y)\ d\beta\ d\sigma^{2}$$
+
+
+We want compare the observed $y$ to simulated datasets $y^{rep}$ from the posterior predictive distribution.
+More specifically we compare our replicated predictions to our observed data more than one at a time. \
+By comparing our data to all replications, we can assess how well the model fits the data.
+
+$Density \ Overlay$ \
+Each light blue line represents the distribution of predicted scores from a single replications. \
+The dark blue line represents the observed data.\
+If the dark blue line should align closely with the light blue lines,the model fits well. 
+
+```{r,warning = FALSE}
+pp_check(stan_model,'dens_overlay')
+```
+
+
+
+
+3. $Posterior \ predictive \ test$
+
+
+The distribution of a (test) statistic $T(y^{rep})$ over the simulated datasets in $y^{rep}$, compared to the observed value T($y$) computed from the data $y$.
+
+
+These light blue bars represents the mean from each replication plotted as histogram \
+These dark blue bar represents the mean from the observed data. \
+
+If the the observed mean fall into expected range of means from the posterior predictions, the model
+fits well.
+```{r,warning = FALSE}
+pp_check(stan_model,'stat')
+```
+
+
+The plot shows that the statistic, sample mean and standard deviation, lie in the center of the distribution of statistic, mean and standard deviation, computed for each predictive posterior distribution.So we can conclude that the model fits well the data
+```{r,warning = FALSE}
+pp_check(stan_model,'stat_2d')
+```
+
+
+
+##### 5.1.6 Bayesian Model comparison
+
+Here we create the model with only quantitative variable, in order to compare it with the ones that also contain
+qualitative variable
+```{r,results='hide'}
+stan_model_2 <- stan_glm (co2_emissions_g_km  ~ engine_size_l + cylinders+ fuel_consumption_city_l_100_km+fuel_consumption_hwy_l_100_km,
+chains=4,
+iter=3000,
+warmup=500 ,
+thin=3,
+data=train.emission)
+```
+
+In order to compare the quality of the posterior predictions of two model we adopted $elpd$
+
+The $elpd$ is the theoretical expected log pointwise predictive density
+
+$$ E[log \ p(y_{pred}|y_{1}M_{1})]=\int_{pred}p_{y}(y_{pred})\ log \ p(y_{pred}|y_{1},M_{1})dy_{pred}$$
+The intuition behind Equation is that we are evaluating the predictive distribution of $M_{1}$
+  over all possible future data weighted by how likely the future data is according to its true distribution. This means that observations that are very likely according to the true model will have a higher weight than unlikely ones.
+
+$M_{1}$ is the candidate model \
+$p_{y}$ is true data generating distribution \
+$y_{pred}$ is the unobserved data \
+$$\ log \ p(y_{pred}|y_{1},M_{1})$$ 
+If new observations are well-accounted by the posterior predictive distribution, then the density of the posterior predictive distribution is high and so is its logarithm. \
+
+
+Finally, If we consider a set of models, the model with the highest $elpd$  is the model with the predictions that are the closest to the ones of the true data generating process.
+
+N.B.
+Pointwise because you are calculating predictive density values for each point observation. 
+
+
+Now, we use the loo package to calculate the elpd, that is estimated using cross-validation.
+
+$Procedure$: \
+1. We compare the elpd_loo of the two models, and which one is higher, probably is the better model. In  this case is model_1 \
+2. After we see the elpd_diff, if there will be a positive difference score, means that the second model is favored , whereas a \ negative score would indicate a preference for the first model. In this case , we prefer model_1 because has the difference is negative.
+
+
+Useful information
+- elpd_loo is the Bayesian LOO estimate of the expected log pointwise predictive density 
+- se_diff is The Monte Carlo standard error of elpd_loo
+- p_loo is the difference between elpd_loo and the non-cross-validated log posterior predictive density.
+
+```{r,warning = FALSE}
+loo_pred1<- loo(stan_model)
+loo_pred2<- loo(stan_model_2)
+loo_pred1
+loo_pred2
+
+loo_compare(loo_pred1,loo_pred2)
+```
+
+
+
+
+##### 5.2 BAYESIAN LINEAR REGRESSION (2 APPROACH)
+
+In this approach we specify the prior, so we don't use the adjusting scale of rstan what adjust the prior in base 
+of data.
+
+$$Y=\beta_{0}+\beta_{1}x_{1}+...\beta_{p}x_{p} + \epsilon  \\  with\ p=50 \ and\ \epsilon \sim \ \mathcal{N}(0,1) $$  
+
+
+with the sampling model:
+$$Y_{i}\sim \mathcal{N}(Y_{i}|\beta^{T}x_{i},\sigma)$$
+
+With the following prior:
+$$\beta_{0}\sim \mathcal{N}(\beta_{0}|500,25) \\ \beta_{j}\sim \mathcal{N}(\beta_{j}|0,0.01) \\ \sigma\sim Exp(1) $$
+
+
+
+```{r,results='hide'}
+stan_model_spec <- stan_glm (co2_emissions_g_km  ~ engine_size_l + cylinders+ fuel_consumption_city_l_100_km+fuel_consumption_hwy_l_100_km+fuel_type+make,
+chains=4,
+iter=3000,
+warmup=500 ,
+thin=3,
+prior_intercept=normal(500,50),
+# set 500 because is the mean of our y
+prior=normal(0,0.01),
+prior_aux=exponential(1),
+data=train.emission)
+
+```
+
+
+```{r}
+prior_summary(stan_model_spec)
+```
+
+
+
+##### 5.2.1 MODEL DIAGNOSTIC
+```{r}
+summary(stan_model_spec)
+```
+
+##### 5.2.2 MCMC DIAGNOSTIC
+
+$TRACE \ PLOT$
+```{r}
+posterior_chains3 <- as.array(stan_model_spec)
+chains_trace_quant_spec <- mcmc_trace(posterior_chains3, pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"),
+                            facet_args = fargs)
+chains_trace_quant_spec
+
+
+chains_trace_fuel_spec <- mcmc_trace(posterior_chains3,pars = c("fuel_typeE","fuel_typeN","fuel_typeX", "fuel_typeZ"),
+       facet_args = fargs)
+chains_trace_fuel_spec
+
+
+chains_trace_make_spec<- mcmc_trace(posterior_chains3,pars = c("makeAUDI","makeBENTLEY", "makeCHEVROLET","makeJAGUAR","makeFORD","makeLEXUS"),
+       facet_args = fargs)
+chains_trace_make_spec
+
+```
+
+$AFC \ PLOT$
+```{r warning=FALSE}
+afc_quant_spec<-mcmc_acf(posterior_chains3,lags=15,pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"))
+afc_quant_spec
+
+afc_fuel_spec<-mcmc_acf(posterior_chains3,lags=15,pars = c("fuel_typeE","fuel_typeN","fuel_typeX", "fuel_typeZ"))
+afc_fuel_spec
+
+
+afc_make_spec<- mcmc_acf(posterior_chains3,lags=15,pars = c("makeAUDI","makeBENTLEY", "makeCHEVROLET","makeJAGUAR","makeFORD","makeLEXUS"))
+# Some are autocorrellated
+afc_make_spec
+```
+
+
+
+##### 5.2.3 PARAMETER  ANALYSIS
+```{r}
+mcmc_dens_quant_spec<- mcmc_dens_overlay(posterior_chains3,pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"))
+mcmc_dens_quant_spec
+
+mcmc_dens_fuel_spec<- mcmc_dens_overlay(posterior_chains3,pars = c("fuel_typeE","fuel_typeN","fuel_typeX", "fuel_typeZ"))
+mcmc_dens_fuel_spec
+
+
+mcmc_dens_make_spec<- mcmc_dens_overlay(posterior_chains3,pars = c("makeAUDI","makeBENTLEY", "makeCHEVROLET","makeJAGUAR","makeFORD","makeLEXUS"))
+mcmc_dens_make_spec
+```
+
+
+$Credible \ interval$
+```{r}
+posterior_interval(stan_model_spec)
+```
+
+##### 5.1.4 ASSES THE MODEL FIT
+
+```{r}
+r2_posterior_spec<- bayes_R2(stan_model_spec)
+hist(r2_posterior_spec,main="Posterior Distribution of the R^2",col="lightgreen",border="white")
+```
+
+
+##### 5.1.5 Posterior  predictive  model  checks
+
+```{r warning=FALSE}
+pp_check(stan_model_spec,'dens_overlay')
+```
+
+
+$Posterior \ predictive \ test$ \
+The standard deviation is not centered in the distribution of statistics standard deviation, we can spot that if we specified the prior we obtain worse prediction due to the fact that automated Stan algorithm is more precise with adjusted prior at each iterations.
+```{r warning=FALSE}
+pp_check(stan_model_spec,'stat')
+pp_check(stan_model_spec,'stat_2d')
+```
+
+
+
+
+#### 5.3 POISSON REGRESSION MODEL
+
+Assume: $$\lambda_i = h (\beta^T x)$$ 
+where the link function is $g(.) = h^{-1} = e^{\beta^T x_i}$.
+
+$$log(\lambda_i) = \beta^T x_i$$ Under $Y_i|\lambda_i \sim Poisson(\lambda_i)$, assuming $Y_i$'s independent and identically distributed, the likelihood is: $$p(y_1,y_2,...,y_n|\beta) = \prod_{i=1}^{n} p(y_i|\lambda_i) = \prod_{i=1}^{n} \frac{\lambda_i^{y_i}e^{-\lambda}}{y_i!}$$ $$= \prod_{i=1}^{n} \frac{h(\beta^Tx_i)^{y_i}e^{-h(\beta^Tx_i)}}{y_i!} $$ 
+
+We assume $\beta_p$ independent and identically distributed.
+
+Prior weakly informative:
+
+$$\beta_j \sim Normal(\beta_{0j},\sigma_{0j}^2)$$ $$p(\beta)= \prod_{j=1}^{p} dN(\beta_j|\beta_{0j},\sigma_{0j}^2)$$
+JAGS algorithm uses the precision parameter, so we decide to specify the precision equal to 0.001.
+$$p(\beta)= \prod_{j=1}^{p} dN(\beta_j|0, \ 0.001)$$
+
+
+In poisson distribution, the mean and variance are equal such that:
+$$E[Y|X] = VAR[Y|X] = \lambda$$
+
+Now we have to update our beliefs about $\beta_j$ and we can implement JAGS algorithm to approximate posterior distribution: $$p(\beta| y_1,y_2,...,y_n)  \  \alpha \ p(y_1,y_2,...,y_n|\beta) \ p(\beta)$$
+
+So we apply JAGS algorithm to estimate the interest quantities: coefficients and lambda values. This algorithm is useful to determine the posterior distribution of $\beta_j$ and $\lambda$. The output is $\left(\beta^{(1)}, \lambda^{(1)} \right), ...,\left(\beta^{(S)}, \lambda^{(S)} \right)$ for $i = 1, ...S$. To implement JAGS, we have to specify the likelihood and the coefficient prior distribution. Then, we can implement the algorithm.
+
+
+```{r}
+y <- train.emission$co2_emissions_g_km
+X <- as.data.frame(train.emission)
+X <- model.matrix(co2_emissions_g_km ~ ., X)
+n <- nrow(X)
+p <- ncol(X)
+
+
+```
+
+```{r,include=FALSE}
+library(R2jags)
+```
+
+```{r,results='hide'}
+set.seed(124578)
+model_code <- function(){
+  ## Likelihood
+  for (i in 1:N) {
+    y[i] ~ dpois(lambda[i])
+    log(lambda[i]) <-   X[i,] %*% b[]
+   
+  }
+  
+  ## Priors
+  
+  for (j in 1:p) {
+    b[j] ~ dnorm(0, 0.001)  
+  }
+  
+  
+}
+
+model_data <- list(N = n, p = p,  y = y, X = X)
+model_parameter <- c("b","lambda")
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameter,
+  model.file = model_code,
+  n.chains = 1, # Number of different starting positions
+  n.iter = 5000, # Number of iterations
+  n.burnin = 100, # Number of iterations to remove at start
+  n.thin = 3
+) # Amount of thinning
+
+
+
+```
+
+##### 5.3.1 DIAGNOSTIC ANALYSIS
+
+It is important to check if MCMC output is a good approximation of the true posterior distribution. 
+
+$Trace\ plot$
+
+$\beta_j^{(s)}$ from JAGS output
+
+```{r}
+par(mfrow = c(3,3))
+for (i in 1:6){
+  coda::traceplot(mcmc(model_run$BUGSoutput$sims.list$b[,i]),
+                  main = colnames(X)[i])
+  abline(h = mean(model_run$BUGSoutput$sims.list$b[,i]), col = "red")
+  
+}
+
+```
+
+```{r}
+par(mfrow = c(3,3))
+for (i in 42:50){
+  coda::traceplot(mcmc(model_run$BUGSoutput$sims.list$b[,i]),
+                  main = colnames(X)[i])
+  abline(h = mean(model_run$BUGSoutput$sims.list$b[,i]), col = "red")
+  
+}
+```
+
+
+It is possible to see that in general there are no evident strange patterns and burn in. We can conclude that the chain has achieved stationarity.
+
+$Autocorrelation \ plot$
+
+It is relevant to check if there is a strong autocorrelation between values taking into consideration different lags. For a generic sequence of numbers ${\theta_1, ..., \theta_S}$, the lag-k autocorrellation function estimates the correlation between elements of the sequence that are k steps apart: $$acf_k(\theta)=\frac{\frac{1}{S-k} \sum_{s=1}^{S-k}(\theta^{(s)}-\bar\theta)(\theta^{(s-k)}-\bar\theta)}{\frac{1}{S-k}\sum_{s=1}^{S-k}(\theta^{(s)}-
+\bar\theta)^2}$$ where $\bar\theta = \frac{1}{S-k} \sum_{s=1}^{S-k}\theta^{(s)}$. For $k = 0$, $acf_0(\theta) = 0$.
+
+$\beta_j$ JAGS output
+
+```{r}
+par(mfrow = c(3,3))
+for (i in 1:9){
+  acf(mcmc(model_run$BUGSoutput$sims.list$b[,i]),
+      main = colnames(X)[i])
+}
+```
+
+```{r}
+par(mfrow = c(3,3))
+for (i in 42:50){
+  acf(mcmc(model_run$BUGSoutput$sims.list$b[,i]),
+      main = colnames(X)[i])
+}
+```
+
+It is possible to conclude that there is no high autocorrellation.
+
+$Geweke \ test$
+
+Now we used Geweke test to see if the chains has converged. We want to check if statistics computed from different portions of the chains are similar. Geweke statistics is: $$Z_n = \frac{\bar\theta_I - \bar\theta_L}{\sqrt{\hat s_I^2 + \hat s_L^2}} \sim N(0,1)$$ as $n$ goes to.
+
+If $|Z_n|>1.96$, the hypothesis of stationary (equal means) is rejected.
+
+$\beta_j$ JAGS output
+
+
+```{r,include=FALSE}
+library(coda)
+```
+
+```{r warning=FALSE}
+G_test_beta <- numeric()
+for (i in 1:p){
+  G_test_beta[i] <- geweke.diag(mcmc(model_run$BUGSoutput$sims.list$b[,i]))
+}
+paste(G_test_beta)
+```
+
+In general we can not rejected the stationary hypothesis.
+
+$Effective \ sample\ size$ 
+$$ESS = \frac{G}{1+2 \sum_{g=1}^{G} acf_g}$$ 
+with G the number of post burn-in in MCMC samples. 
+If all $acf_g = 0$, then $ESS = G$.
+
+$\beta_j$ JAGS output
+
+```{r}
+Sample_size_test_beta <- numeric()
+for (i in 1:p){
+  Sample_size_test_beta[i] <- effectiveSize(mcmc(model_run$BUGSoutput$sims.list$b[,i]))
+}
+Sample_size_test_beta
+```
+
+In general the estimated values of coefficients are good. In some cases it can be seen a smaller o bigger effective sample size. This indicates some correlation between generated values.
+
+##### 5.3.2 POSTERIOR CHECKING
+
+Now we want to check if posterior distribution is a good approximation of the true distribution. Firstly, we have obtained posterior $\lambda^{(s)}$ values from JAGS output and then we determine posterior predicted values sampling randomly from a Poisson distribution with posterior lambda vector as parameter vector.
+
+Posterior predicted distribution: 
+$$p(y^*| y_1,y_2,...,y_n) = \int p(y^*|\theta) \ p(\theta|y_1,y_2,...,y_n) \  d\theta$$ 
+Future values $Y^*$ and $(Y_1,...Y_2)$ are independent conditionally on $\theta$: 
+$$Y^* \perp (Y_1,Y_2,...,Y_n) \ | \ \theta$$ 
+We can sample from a Poisson distribution with posterior parameters (JAGS output). Then we obtain predictive posterior distribution.
+
+
+```{r,include=FALSE}
+library(bayesplot)
+```
+
+```{r}
+post.lambda <- model_run$BUGSoutput$sims.list$lambda
+ # I store everything in this matrix
+#y
+set.seed(12345)
+# sample from a poisson using different posterior lambda to obtain the predicted dataset
+yrep <- t(sapply(1:nrow(post.lambda), function(x) rpois(length(y), post.lambda[x,])))
+
+color_scheme_set("brightblue")
+
+# blue: real dataset
+# light blue: approximated density of simulated dataset
+ppc_dens_overlay(y, yrep[1:100, ]) 
+
+```
+
+Through the plot, it can be seen that predicted posterior distribution is similar to the empirical distribution of Y. On the other hand, the graph shows some differences in the left tail and in the peak of distribution.
+
+Now, we compare the observed value of two statistics (mean, standard deviation) and the corresponding distribution of the two statistics $t(Y^*_{1:n})$. We have to check if the observed statistic lie in the distribution of $t(Y^*_{1:n})$.
+
+```{r message=FALSE}
+par(mfrow = c(1,2))
+
+
+ppc_stat(y, yrep, stat = mean,binwidth = 0.01) 
+ppc_stat(y, yrep, stat = sd) 
+
+
+```
+
+In Poisson regression model there is a strong assumption: $E(Y)=VAR(Y)=\lambda$. When the mean and the variance are not equal, there is a overdispersion. So it is important to add an extra variation. In this plot, it can be seen that the standard deviation of the true model is not centered in the approximated distribution of statistics for the predicted values. So we can conclude that it could be a sign of overdispersion.
+
+##### 5.3.3 PARAMETER ANALYSIS 
+
+Now we determine posterior expectation of every parameter thanks to approximated posterior distribution of $\beta^{(s)}$. Through quantile function, we calculate credible intervals to study the significance of parameters.
+
+$Posterior \ mean \ of \ parameter$
+
+```{r}
+
+
+result <- as.matrix(colMeans(model_run$BUGSoutput$sims.list$b), nrow = p)
+
+
+rownames(result) <- c(colnames(X)) 
+colnames(result) <- "Posterior Expectation"
+knitr::kable(result)
+```
+$Credible \ Interval \ with \ \alpha=0.05 \ significance \ level$
+```{r}
+result <- matrix(1,p,2)
+rownames(result) <- c(colnames(X)) 
+colnames(result) <- c("Lower bound", "Upper bound")
+for (i in 1:p){
+  result[i,1] <- quantile(model_run$BUGSoutput$sims.list$b[,i], prob = .025)
+  result[i,2] <- quantile(model_run$BUGSoutput$sims.list$b[,i], prob = .975)
+}
+
+knitr::kable(result)
+
+```
+The credible interval of engine size contains zero value, so we can conclude that it has no significance effect on our response.
+In general the levels of variable make result significance, so we can proceed our analysis to study better the effect of each dummy level. 
+
+
+##### 5.3.4 MODEL SELECTION
+
+In Poisson regression model we can not apply model selection comparison because in generalized linear model is not possible to calculate marginal likelihood of each possible regression model. So we can not compute posterior model probability.
+
+For this reason, we have to change method for variable selection. We introduce a (p,1) binary vector $\gamma = (\gamma_1, ...,\gamma_p)^T$. 
+$\gamma_j$ that controls the inclusion of $X_j$ among predictors:
+
+-   If $\gamma_j = 1$, then $X_j$ is in the model;
+
+-   If $\gamma_j = 0$, then $X_j$ is not in the model.
+
+So, we treat $\gamma$ as a parameter and we do posterior inference on it.
+
+We have now two priors:
+
+-   $\gamma_j \sim Bern(w)$
+
+-   $\beta_j \sim N(0,0.001)$
+
+Then we obtain joint prior on $(\beta_j,\gamma_j)$, which is called spike and slab prior: $$p(\beta_j,\gamma_j) = (1-w) \ \delta_0 + w \ dN(\beta_j|0, \ 0.001)$$ We assign weakly prior to w: $$w \sim Beta(1,1)$$
+
+We want to determine the posterior probability of inclusion of predictor $X_j$: $$\hat p_{X_j} = \frac{1}{S}\sum_{s=1}^{S} \gamma_j^{(s)}$$
+
+```{r ,results='hide'}
+
+
+set.seed(9871567)
+selection_code <- function(){
+  ## Likelihood
+  for (i in 1:N) {
+    y[i] ~ dpois(lambda[i])
+    log(lambda[i]) <-  X[i,] %*% (gam*b)
+  }
+  
+  ## Priors
+  for (j in 1:p) { 
+    b[j] ~ dnorm(0, 0.001)   
+  }
+  
+  for (j in 1:p){
+    gam[j] ~ dbern(w)
+  }
+  w ~ dbeta(1,1)     
+  
+}
+
+selection_data <- list(N = n, p = p,  y = y, X = X)
+
+selection_params <- c( "b","gam","lambda")
+
+### Run the model
+library(R2jags)
+selection_run <- jags(
+  data = selection_data,
+  parameters.to.save = selection_params,
+  model.file = selection_code,
+  n.chains = 1, 
+  n.iter = 1000, 
+  n.burnin = 100, 
+  n.thin = 3
+) 
+
+```
+
+```{r}
+out = selection_run$BUGSoutput
+
+
+## Extract samples from the posterior of beta and gamma
+
+beta_post  = out$sims.list$b
+gamma_post = out$sims.list$gam
+
+
+
+S = nrow(gamma_post)
+
+## Estimate the posterior probability of inclusion of each predictor Xj
+## i.e. proportion of times gammaj = 1
+
+prob_inclusion = colMeans(gamma_post)
+
+names(prob_inclusion) = c( colnames(X))
+
+```
+
+
+```{r}
+par(mfrow = c(1,1), mar = c(3,5,2,2))
+barplot(sort(prob_inclusion, decreasing = T), col = rainbow(40), xlab = expression(hat(p)[j]), space = 0.4, horiz =T,las = 2,
+        cex.names = 0.7)
+```
+
+We can observe that in general the various level of qualitative parameter make (vehicle company) have an high posterior inclusion probability, so difference between levels are relevant for our analysis.
+As we saw before in the variable analysis, Ford and Mercedes Benz have an import role in co2 emission.
+
+##### 5.4 POISSON REGRESSION MODEL WITH OVERDISPERSION
+
+Now we add an additional variation to try to solve the problem of overdisperion. So, in JAGS algorithm we specify an additional variable called $\phi$. We set the weakly informative prior: 
+$$\phi \sim Gamma(0.001 \ , \ 0.001)$$
+
+$$log(\lambda ) = \beta^Tx $$
+$$Y \sim Poisson(\lambda \ \phi)$$
+
+$$E[Y|X] = \lambda$$ 
+$$VAR[Y|X]= \lambda \ \phi$$
+
+We implement JAGS algorithm to compute posterior distribution of $\beta_j, \phi$.
+```{r include=FALSE}
+
+set.seed(1278)
+
+
+thirdmodel_code <- function(){
+  ## Likelihood
+  for (i in 1:N) {
+    y[i] ~ dpois(lambda[i]*phi)
+    log(lambda[i]) <-  X[i,] %*% b
+  }
+  
+  ## Priors
+  for (j in 1:p) { 
+    b[j] ~ dnorm(0, 0.001)   # weakly informative prior with low precision
+  }
+  
+  phi ~ dgamma(0.001, 0.001) # additional variation: overdispersion
+  
+
+}
+
+
+thirdmodel_data <- list(N = n, p = p,  y = y, X = X)
+
+thirdmodel_params <- c( "b","phi","lambda")
+
+
+
+secondmodel_run <- jags(
+  data = thirdmodel_data,
+  parameters.to.save = thirdmodel_params,
+  model.file = thirdmodel_code,
+  n.chains = 1, 
+  n.iter = 1000, 
+  n.burnin = 100, 
+  n.thin = 3
+) 
+
+
+```
+
+##### 5.4.1 POSTERIOR CHECKING
+
+```{r warning=FALSE}
+post2.lambda <- secondmodel_run$BUGSoutput$sims.list$lambda
+post.phi <- secondmodel_run$BUGSoutput$sims.list$phi
+
+set.seed(156)
+  # observed data
+
+# predicted values 
+y2rep <- t(sapply(1:nrow(post2.lambda), function(x) rpois(length(y), 
+                                                          post2.lambda[x,]*post.phi[x])))
+
+color_scheme_set("brightblue")
+
+ppc_dens_overlay(y, y2rep)
+
+
+ppc_stat(y, y2rep, stat = sd)
+ppc_stat(y, y2rep, stat = mean)
+
+
+```
+
+The plot let us to compare the empirical distribution of our response and the predictive posterior distribution generated by Markov Chain Monte Carlo approximation. As in the previous case, we sample n (sample size) values from Poisson distribution with JAGS output parameters $\lambda^{(s)}, \phi^{(s)}$  for S iterations.
+It can be seen that the approximation of predictive posterior distribution do not fit well the empirical distribution.
+
+##### 5.5 HIERCHICAL POISSON REGRESSION
+
+Now we want to study if there are some differences between vehicle companies in Co2 Emissions.
+For this reason, we decided to implement a Hierchical poisson model. Furthermore, we take into account dispersion parameter to prevent the presence of possible overdispersion. 
+
+We set an extra parameter $u_m$ that represents the intercept for every vehicle company. Our aim is to understand if $u_m$ differs across m vehicle companies (M = 42).
+
+
+
+$$y_{i,m} = exp( \beta^Tx_{i,m} + u_m + \epsilon_{i,m}) $$ 
+for $i = 1,...,n$ and $m = 1, ...., M$.
+$$log(\lambda_{i,m}) = \beta^Tx_{i,m} + u_m$$ 
+where $M = 42$ number of different groups and $u_m$ is the random effect.
+
+
+
+- Sampling model: 
+$$(Y_{1,m}, Y_ {2,m},...,Y_{n_j,m})|\lambda_{i,m}, \phi \sim Poisson(\lambda_{i,m} * \phi)$$ 
+within group variability, where $m = 1,..., 42$ number of groups.
+
+-   Prior for $\beta_p$: 
+$$\beta_p \sim Normal(0,0.001)$$ 
+Prior level 1:
+
+-   Prior for $u_m$: 
+$$u_m |\tau_u \sim Normal(0,\tau_u)$$ 
+Between group variability.
+
+Prior level 2: 
+
+- Prior for $\tau_u$, precision parameter of prior distribution of $u_m$: 
+$$\tau_u \sim Gamma(0.01,0.01)$$
+
+-   Prior for $\phi$, dispersion parameter: 
+$$\phi \sim Gamma(0.001,0.001)$$
+
+```{r}
+y <- train.emission$co2_emissions_g_km
+
+X <-as.data.frame(train.emission)
+X<-model.matrix(co2_emissions_g_km~.,X)
+
+n <- nrow(X)
+p1 <- ncol(X)
+
+m1 <- length(unique(train.emission$make))
+```
+
+```{r}
+set.seed(1235)
+make_model_code <- function(){
+  ## Likelihood
+  for (i in 1:N) {
+    y[i] ~ dpois(lambda[i] * phi)
+    log(lambda[i]) <-  M[Make[i]] + X[i,] %*% b[]
+  }
+  ## Group parameter effect
+  for (j in 1:m) {
+    M[j] ~ dnorm(0, tau.M)       
+    # tau is the precision
+  }
+  
+
+  phi ~ dgamma(0.001, 0.001)   # additional variation: overdispersion
+  
+  
+  ## Priors
+  for (j in 1:p) { 
+    b[j] ~ dnorm(0, 0.001)   # weakly informative prior with low precision
+  }
+  tau.M <- pow(sigma.M, -2)  # find the precision through the variance
+  sigma.M ~ dgamma(0.001, 0.001)   # non - informative
+  
+}
+
+make_model_model_data <- list(N = n, p = p1, m = m1, y = y, X = X, 
+                         Make = new_emission$make)
+
+
+make_model_model_params <- c("M", "b", "sigma.M", "lambda","phi")
+
+### Run the model
+```
+
+```{r,include=FALSE}
+library(R2jags)
+```
+
+
+```{r,results='hide'}
+make_model_run <- jags(
+  data = make_model_model_data,
+  parameters.to.save = make_model_model_params,
+  model.file = make_model_code,
+  n.chains = 1, 
+  n.iter = 2000, 
+  n.burnin = 100, 
+  n.thin = 3
+) 
+
+
+```
+
+##### 5.5.1 DIAGNOSTIC  ANALYSIS
+
+$Trace \ plot$
+
+- $u_m^{(s)}$
+
+```{r}
+par(mfrow = c(3,4))
+for (i in 1:12){
+  coda::traceplot(mcmc(make_model_run$BUGSoutput$sims.list$M[,i]))
+  abline(h = mean(make_model_run$BUGSoutput$sims.list$M[,i]), col = "red")
+  
+}
+
+```
+
+The plots show that there are no issues about convergence (no strange patterns appear).
+
+$Autocorrelation \ plot$
+
+- $u_m^{(s)}$
+
+```{r}
+par(mfrow = c(3,4))
+for (i in 1:12){
+  acf(mcmc(make_model_run$BUGSoutput$sims.list$M[,i]))
+  
+}
+```
+
+We can observe that there no high correlation between generated values.
+
+$Geweke \ test$
+
+- $u_m^{(s)}$
+
+```{r,include=FALSE}
+library(coda)
+```
+
+
+```{r,warning=FALSE}
+
+geweke.diag(mcmc(make_model_run$BUGSoutput$sims.list$sigma.M))
+G_test_M <- numeric()
+for (i in 1:m1){
+  G_test_M[i] <- geweke.diag(mcmc(make_model_run$BUGSoutput$sims.list$M[,i]))
+  }
+paste(G_test_M)
+```
+
+For every $u_m$ we can not reject null hypothesis, so we can conclude that the chain has reached the stationarity.
+
+$Effective \ sample \ size$
+
+- $u_m^{(s)}$
+
+```{r}
+Sample_size_test_M <- numeric()
+for (i in 1:m1){
+  Sample_size_test_M[i] <- effectiveSize(mcmc(make_model_run$BUGSoutput$sims.list$M[,i]))
+}
+Sample_size_test_M
+
+```
+
+In general the effective sample size coincide with G, but in some cases there are positive (or negative) correlation between generated values.
+
+##### 5.5.2 PARAMETER ANALYSIS
+
+$Posterior \ mean \ of  \ \beta_j^{(s)} \ and \ u_m^{(s)}$
+
+```{r}
+# posterior mean e credible intervals
+result_make <- matrix(1 ,nrow = (p1+m1),ncol =1)
+result_make[1:p1,] <- colMeans(make_model_run$BUGSoutput$sims.list$b)
+result_make[p1+1:m1,] <- colMeans(make_model_run$BUGSoutput$sims.list$M)
+
+rownames(result_make) <- c(colnames(X), paste("M",1:m1)) 
+colnames(result_make) <- "Posterior Expectation"
+knitr::kable(result_make)
+```
+
+$Credible \ intervals$
+
+```{r}
+result_make1 <- matrix(1,(p1+m1),2)
+rownames(result_make1) <- c(colnames(X), paste("M",1:m1)) 
+colnames(result_make1) <- c("Lower bound", "Upper bound")
+for (i in 1:p1){
+  result_make1[i,1] <- quantile(make_model_run$BUGSoutput$sims.list$b[,i], prob = .025)
+  result_make1[i,2] <- quantile(make_model_run$BUGSoutput$sims.list$b[,i], prob = .975)
+}
+
+
+for (i in 1:m1){
+  result_make1[p1+i,1] <-  quantile(make_model_run$BUGSoutput$sims.list$M[,i], prob = .025)
+  result_make1[p1+i,2] <-  quantile(make_model_run$BUGSoutput$sims.list$M[,i], prob = .975)
+
+}
+
+
+knitr::kable(result_make1)
+```
+
+It can be seen that the intercept is lower than in Poisson model due to the fact that we are specifying one intercept for every group. $u_m$ is significance for every vehicle company. 
+
+$Histograms \ of \ u_m$
+```{r}
+par(mfrow = c(2,3))
+for (i in 33:38){
+  hist(make_model_run$BUGSoutput$sims.list$M[,i])
+  abline(v = result_make1[p1+i,1], col = "red", lty = 2, lwd = 3)
+  abline(v = result_make1[p1+i,2], col = "red", lty = 2, lwd = 3)
+  abline(v = colMeans(make_model_run$BUGSoutput$sims.list$M)[i], col = "blue", lty = 2, lwd = 3)
+}
+```
+
+$Box-plot \  of \ u_m^{(s)}$
+
+```{r}
+boxplot(make_model_run$BUGSoutput$sims.list$M, col = rainbow(51), 
+        xlab = expression(hat(p)[j]), space = 0.4, horiz =T,las = 2,
+        cex.names = 0.7)
+
+
+
+```
+
+We can notice that there are differences between $u_m$ intercept for every group. We can image that there will be not particular difference with Poisson Regression model, but probably we will obtain more precise model.
+
+
+
+```{r warning=FALSE}
+post.lambda_mixed <- make_model_run$BUGSoutput$sims.list$lambda
+post.phi.2 <- make_model_run$BUGSoutput$sims.list$phi
+
+set.seed(12)
+  # observed data
+
+# predicted values 
+yrep_mixed <- t(sapply(1:nrow(post.lambda_mixed), 
+                       function(x) rpois(length(y), post.lambda_mixed[x,]*post.phi.2[x])))
+
+
+
+color_scheme_set("brightblue")
+
+ppc_dens_overlay(y, yrep_mixed)
+
+
+
+
+ppc_stat(y, yrep_mixed, stat = sd)
+ppc_stat(y, yrep_mixed, stat = mean)
+
+
+```
+
+
+##### 6. MODEL COMPARISON
+
+We can compare our models through Rooted Mean Square Error (RMSE).
+
+```{r}
+true_value <- test.emission$co2_emissions_g_km 
+N <- length(true_value)
+```
+
+
+```{r,warning=FALSE}
+MSE.poisson <- 1/N * sum((true_value - colMeans(yrep))^2)
+MSE.poisson_overdispersion <- 1/N * sum((true_value - colMeans(y2rep))^2)
+MSE.mixed <- 1/N * sum((true_value - colMeans(yrep_mixed))^2)
+
+rmse_poisson<-sqrt(MSE.poisson)
+rmse_poisson_overdispersion<-sqrt(MSE.poisson_overdispersion)
+rmse_mixed<-sqrt(MSE.mixed)
+
+```
+
+
+```{r}
+new_predictions<- posterior_predict(stan_model,newdata=test.emission)
+MSE_blr<-MSE(new_predictions,test.emission$co2_emissions_g_km)
+rmse_blr<- sqrt(MSE_blr)
+
+
+new_predictions_spec<- posterior_predict(stan_model_spec,newdata=test.emission)
+MSE_blr2<-MSE(new_predictions_spec,test.emission$co2_emissions_g_km)
+rmse_blr2<- sqrt(MSE_blr2)
+
+```
+
+
+
+
+```{r}
+plot(density(yrep),main='Poisson Regression model')
+lines(density(true_value), col= "red")
+legend("topright", legend=c("Empirical Distribution", "Predictive Distribution"),
+fill = c("red","black"), cex = 0.7)
+
+
+
+plot(density(y2rep),main='Poisson Regression model with Overdispersion')
+lines(density(true_value), col = "red")
+legend("topright", legend=c("Empirical Distribution", "Predictive Distribution"),
+fill = c("red","black"), cex = 0.7)
+
+
+
+
+plot(density(yrep_mixed),main='Bayesian Hierarchical Poisson Model')
+lines(density(true_value), col= "red")
+legend("topright", legend=c("Empirical Distribution", "Predictive Distribution"),
+fill = c("red","black"), cex = 0.7)
+
+
+```
+
+
+
+```{r}
+rmse<-round(c(rmse_blr,rmse_blr2,rmse_poisson,rmse_poisson_overdispersion,rmse_mixed),2)
+model<-c('Bayesian Linear Regression(1 approach)','Bayesian Linear Regression(2 approach)','Bayesian Poisson Regression',
+          'Bayesian Poisson Overdispersion Regression','Bayesian Hierarchical Poisson Regression')
+rmse_data<- cbind(rmse,model)
+rmse_data2<- as.data.frame(rmse_data)
+rmse_data2<- rmse_data2 %>% mutate(rmse=as.numeric(rmse))
+```
+
+
+
+```{r}
+ ggplot() + geom_col(data =rmse_data2, aes(x=reorder(model,-rmse),y=rmse,fill=model)) +
+  xlab('Model') +
+   theme(axis.text.x=element_text(size=2.5))+
+  labs(title = "RMSE for each Model")
+ggsave("rmse_plot2.png")
+```
+
+We can conclude that the Stan Model are the ones that has the lowest RMSE, perhaps because it use a more advanced algorithm.
+Furthermore, we can spot that Hierarchical model has the lower RMSE between the Jags model, probably because it is the more complex and fits better the data.
+
+##### 7. SENSITIVITY ANALYISIS
+We adopt for all models  weakly informative priors because there are the most effective when we do a Bayesian analysis, because don't give too much information on priors as informative priors do and also we don't assume a no knowledge situation like non informative prior that can cause some troubles (i.e no convergency of MCMC). 
+
+
