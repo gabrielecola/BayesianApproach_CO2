@@ -17,10 +17,10 @@ output:
 This dataset captures the details of how CO2 emissions by a vehicle can vary with the different features. The dataset has been taken from Canada Government official open data website.This is a compiled version. This contains data over a period of 7 years. There are total 7385 rows and 12 columns.
 The main attributes : 
 
-- $\textbf{make}$: Company of the vehicle ( 42 groups)
-- $\textbf{model}$ : Car Model
-- $\textbf{vehicle class}$:  Class of Vehicle depending on their utility,capacity and weight
-- $\textbf{engine size}$ : Size of engine used in Litre
+- **make**: Company of the vehicle ( 42 groups)
+- **model** : Car Model
+- **vehicle_class**:  Class of Vehicle depending on their utility,capacity and weight
+- **engine size** : Size of engine used in Litre
 - $\textbf{cylinders}$ : Number of cylinders
 - $\textbf{transmission}$ : Transmission type with number of gears
 - $\textbf{fuel type}$: Type of Fuel used : (X=Regular gasoline,Z=Premium gasoline,Diesel,Ethanol,Natural Gas)
@@ -125,7 +125,7 @@ summary(co2_emission)
 
 ##### 2.2 SCALING VARIABLE
 
-We transform $co2_emissions_g_km$ ,$fuel_consumption_city_l_100_km$,$fuel_consumption_hwy_l_100_km$  in order to express them in the same scale ( 1 Litre for 1 kilometre)
+We transform **co2 emissions g km** ,**fuel consumption city l 100 km**,**fuel consumption hwy l 100 km**  in order to express them in the same scale ( 1 Litre for 1 kilometre)
 
 
 ```r
@@ -153,7 +153,7 @@ corrplot(cor_matrix, method="number",tl.cex=0.5,number.digits = 1)
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 We can notice a high correlation between variables both positive and negative.
-We also spot that our response variable $co2_emissions_g_km$ is highly correlated with the other variable so
+We also spot that our response variable **co2_emissions_g_km** is highly correlated with the other variable so
 we pursue our analysis with a scatterplot in order to understand better the relationships.
 
 
@@ -163,10 +163,10 @@ we pursue our analysis with a scatterplot in order to understand better the rela
 $Scatterplot$ \
 
 
-1. $Fuel\ consumption\ city$ has positively  relationship with $Co2\ emission$, if $Fuel\ consumption \ city$ rise also $Co2\ emission$.\
-2. $Cylinders$ has positively  relationship with $Co2 \ emission$, if $Cylinders$ rise also $Co2\ emission$.\
-3. $Engine \ size$ has positively  relationship with $Co2\ emission$, if $Engine \ size$ rise also $Co2\ emission$.\
-4. $Fuel\ consumption \ highway$ has positively  relationship with $Co2 \ emission$, if $Fuel\ consumption \ highway$ rise also $Co2\ emission$.\
+1. $Fuel\ consumption\ city$ has positively  relationship with $Co2\ emission$, if $Fuel\ consumption \ city$ rise also $Co2\ emission$.
+2. $Cylinders$ has positively  relationship with $Co2 \ emission$, if $Cylinders$ rise also $Co2\ emission$.
+3. $Engine \ size$ has positively  relationship with $Co2\ emission$, if $Engine \ size$ rise also $Co2\ emission$.
+4. $Fuel\ consumption \ highway$ has positively  relationship with $Co2 \ emission$, if $Fuel\ consumption \ highway$ rise also $Co2\ emission$.
 
 ```r
 fuelcity_scatter<-ggplot(co2_emission, aes(x=fuel_consumption_city_l_100_km , y=co2_emissions_g_km )) +
