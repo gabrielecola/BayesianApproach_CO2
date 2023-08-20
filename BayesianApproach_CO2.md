@@ -21,14 +21,14 @@ The main attributes :
 - **model** : Car Model
 - **vehicle_class**:  Class of Vehicle depending on their utility,capacity and weight
 - **engine size** : Size of engine used in Litre
-- $\textbf{cylinders}$ : Number of cylinders
-- $\textbf{transmission}$ : Transmission type with number of gears
-- $\textbf{fuel type}$: Type of Fuel used : (X=Regular gasoline,Z=Premium gasoline,Diesel,Ethanol,Natural Gas)
-- $\textbf{fuel consumption city l 100 km}$: City fuel consumption ratings are shown in litres per 100 kilometres 
-- $\textbf{fuel consumption hwy l 100 km}$: Highway fuel consumption ratings are shown in litres per 100 kilometres 
-- $\textbf{fuel consumption comb l 100 km}$: City fuel consumption ratings are shown in  miles per gallon
-- $\textbf{fuel consumption comb mpg}$: Highway fuel consumption ratings are shown in  miles per gallon
-- $\textbf{co2 emissions}$: The tailpipe emissions of carbon dioxide (in grams per kilometre) for combined city and highway driving
+- **cylinders** : Number of cylinders
+- **transmission** : Transmission type with number of gears
+- **fuel type**: Type of Fuel used : (X=Regular gasoline,Z=Premium gasoline,Diesel,Ethanol,Natural Gas)
+- **fuel_consumption_city_l_100_km**: City fuel consumption ratings are shown in litres per 100 kilometres 
+- **fuel_consumption_hwy_l_100_km**: Highway fuel consumption ratings are shown in litres per 100 kilometres 
+- **fuel_consumption_comb_l_100_km**: City fuel consumption ratings are shown in  miles per gallon
+- **fuel_consumption_comb_mpg**: Highway fuel consumption ratings are shown in  miles per gallon
+- **co2_emissions**: The tailpipe emissions of carbon dioxide (in grams per kilometre) for combined city and highway driving
 
 
 ```r
@@ -160,7 +160,7 @@ we pursue our analysis with a scatterplot in order to understand better the rela
 
 
 
-$Scatterplot$ \
+$Scatterplot$ 
 
 
 1. $Fuel\ consumption\ city$ has positively  relationship with $Co2\ emission$, if $Fuel\ consumption \ city$ rise also $Co2\ emission$.
