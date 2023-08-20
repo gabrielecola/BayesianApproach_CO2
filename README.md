@@ -21,8 +21,7 @@ Thus, using Bayesian model to predict the count of C02 emission could be useful 
 Predicting the count of C02 emission given some qualitative and quantitative attribute.
 
 ### 2. Data Description
-Data is obtained from Kaggle.
-https://www.kaggle.com/datasets/debajyotipodder/co2-emission-by-vehicles
+Data is obtained from [Kaggle](https://www.kaggle.com/datasets/debajyotipodder/co2-emission-by-vehicles)
 
 - Number of instances - 7385
 - Number of attributes - 12
