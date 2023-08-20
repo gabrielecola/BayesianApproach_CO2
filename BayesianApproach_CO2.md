@@ -163,10 +163,10 @@ we pursue our analysis with a scatterplot in order to understand better the rela
 $Scatterplot$ 
 
 
-1. $Fuel\ consumption\ city$ has positively  relationship with $Co2\ emission$, if $Fuel\ consumption \ city$ rise also $Co2\ emission$.
-2. $Cylinders$ has positively  relationship with $Co2 \ emission$, if $Cylinders$ rise also $Co2\ emission$.
-3. $Engine \ size$ has positively  relationship with $Co2\ emission$, if $Engine \ size$ rise also $Co2\ emission$.
-4. $Fuel\ consumption \ highway$ has positively  relationship with $Co2 \ emission$, if $Fuel\ consumption \ highway$ rise also $Co2\ emission$.
+1. **Fuel_consumption_city** has positively  relationship with **Co2_emission**, if **Fuel_consumption_city** rise also **Co2_emission**.
+2. **Cylinders** has positively  relationship with **Co2_emission**, if **Cylinders** rise also **Co2_emission**.
+3. **Engine_size** has positively  relationship with **Co2_emission**, if **Engine_size** rise also **Co2_emission**.
+4. **Fuel_consumption_highway** has positively  relationship with **Co2_emission**, if **Fuel_consumption_highway** rise also **Co2_ emission**.
 
 ```r
 fuelcity_scatter<-ggplot(co2_emission, aes(x=fuel_consumption_city_l_100_km , y=co2_emissions_g_km )) +
@@ -210,7 +210,7 @@ data_emission<- co2_emission %>% group_by(vehicle_class) %>% distinct(vehicle_cl
 head(data_emission)
 ```
 
-In this two graph we want to analyze the variable $vehicle\ class$, firstly with geom_bar so we look to the frequency of each $vehicle\ class$,and then with geom_col to see the overall emission for each $vehicle\ class$.
+In this two graph we want to analyze the variable **vehicle_class**, firstly with geom_bar so we look to the frequency of each **vehicle_ class**,and then with geom_col to see the overall emission for each **vehicle_class**.
 
 ```r
 j<-ggplot() + geom_col(data =data_emission, aes(x = reorder(vehicle_class,count), y = count,fill=vehicle_class))+
@@ -236,7 +236,7 @@ m + theme(text = element_text(size = 5),plot.title=element_text(size = 9),axis.t
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 
-Now our focus is on variable $Fuel \ type$,so we decide to choose a boxplot for each $Fuel \ type$.
+Now our focus is on variable **Fuel_type**,so we decide to choose a boxplot for each **Fuel_type**.
 We have observed that the highest median of emission is produced by Ethanol and followed by Premium Gasoline; and also
 we spot that few Fuel type adopted Natural Gas.
 
@@ -267,7 +267,7 @@ boxplot+theme(plot.caption = element_text(size=5.5),legend.text = element_text(s
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 
-Now our focus is on $Transmission$, through this plot we want to spot the C02 emission of each Transmission.
+Now our focus is on **Transmission**, through this plot we want to spot the C02 emission of each Transmission.
 We can notice that the highest peaks of emission is produce by AM6 and in general the transmission that produce 
 more C02 Emission is Automatic and Automatic with select shift
 
@@ -287,7 +287,7 @@ c + theme(text = element_text(size = 7),plot.caption = element_text(size=6.5),pl
 
 
 
-Here we create a Dataframe that reports the total count of emission for each $car \ manufacturer$.
+Here we create a Dataframe that reports the total count of emission for each **car manufacturer**.
 
 ```r
 data_emission_new<- co2_emission %>% group_by(make) %>% distinct(make,co2_emissions_g_km)%>% summarize(count=sum(co2_emissions_g_km))%>% arrange(desc(count))
@@ -310,7 +310,7 @@ a +  theme(legend.text = element_text(size=4),axis.text.y = element_text(size=7)
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 
-We want to examine the distribution of our response variable $Y$
+We want to examine the distribution of our response variable **Y**
 
 ```r
 ggplot(co2_emission, aes(x=co2_emissions_g_km)) + 
@@ -325,14 +325,14 @@ ggplot(co2_emission, aes(x=co2_emissions_g_km)) +
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 Looking at the plot we can assume that our response could follow a Poisson distribution, but we know that for large count we can
-approximate to a Normal Distribution. We start our analysis with a $Bayesian \ Linear  \ Regression$ and after we implement
-a $Poisson\ Regression\ model$.
-Finally we focus on the effect of different vehicle companies on C02 emission so we decide to fit an $Hierarchical \ Poisson \ Regression\ model$.
+approximate to a Normal Distribution. We start our analysis with a **Bayesian Linear Regression** and after we implement
+a **Poisson Regression model**.
+Finally we focus on the effect of different vehicle companies on C02 emission so we decide to fit an **Hierarchical Poisson Regression model**.
 
 ### 4. Feature Engineering
 
-We remove fuel_consumption_comb_l_100_km,fuel_consumption_comb_mpg because have an high correlation with other variable such as :
-fuel_consumption_hwy_l_100_km,fuel_consumption_hwy_l_100_km, that are the same variable but with different scale.
+We remove **fuel_consumption_comb_l_100_km**,**fuel_consumption_comb_mpg** because have an high correlation with other variable such as :
+**fuel_consumption_hwy_l_100_km**,**fuel_consumption_hwy_l_100_km**, that are the same variable but with different scale.
 Furthermore we remove also some qualitative variable in order to avoid computational issues.
 
 
@@ -356,7 +356,7 @@ test.emission  <- new_emission[-sample, ]
 ##### 5.1 BAYESIAN LINEAR REGRESSION (1 APPROACH)
 
 
-Our $Model$ is:
+Our **Model** is:
 
 $$Y=\beta_{0}+\beta_{1}x_{1}+...\beta_{p}x_{p}+ \epsilon \\ with\ p=50 \ and\ \epsilon \sim \ \mathcal{N}(0,1)$$  
 with the sampling model:
@@ -370,8 +370,8 @@ $$\beta_{0}^{(0)}\sim \mathcal{N}(\beta_{0}|501,(2.5)) \\ \beta_{j}^{(0)}\sim \m
 for the Intercept, Stan specify a mean such that correspond to sample mean of  response variable in this cases is equal to 500.
 
 
-Where our p predictors are: $\textbf{Intercept}$, $\textbf{engine_size_l}$, $\textbf{cylinders}$,$\textbf{fuel_consumption_city_l_100_km}$, $\textbf{fuel_consumption_hwy_l_100_km}$,
-$\textbf{fuel_type}$, $\textbf{make}$ \ 
+Where our p predictors are: **Intercept**, **engine_size_l**, **cylinders**, **fuel_consumption_city_l_100_km**, **fuel_consumption_hwy_l_100_km**,
+**fuel_type**, **make**  
 
 
 ```r
@@ -383,18 +383,18 @@ thin=3,
 data=train.emission)
 ```
 
-$Brief \ Summary$ \
-$\textbf{Intercept}$: For the intercept, the default prior is normal with a standard deviation 2.5, but in this case the standard deviation was adjusted to 294. There is also a note in parentheses informing you that the prior applies to the intercept after all predictors have been centered , this because placing a prior on the intercept after centering the predictors typically makes it easier to specify a reasonable prior for the intercept. \
+$Brief \ Summary$ 
+**Intercept**: For the intercept, the default prior is normal with a standard deviation 2.5, but in this case the standard deviation was adjusted to 294. There is also a note in parentheses informing you that the prior applies to the intercept after all predictors have been centered , this because placing a prior on the intercept after centering the predictors typically makes it easier to specify a reasonable prior for the intercept. 
 
-$\textbf{Coefficients}$: By default the regression coefficients are treated as a priori independent with normal priors centered at 0 and with scale (standard deviation) 2.5.\
+**Coefficients**: By default the regression coefficients are treated as a priori independent with normal priors centered at 0 and with scale (standard deviation) 2.5.\
 rstanarm by default set a weakly informative prior that will be adjusted by the scales of the priors on the coefficients. \
 
-$\textbf{Auxiliary}$ : sigma, the error standard deviation, has a default prior that is exponential(1)
+**Auxiliary** : sigma, the error standard deviation, has a default prior that is exponential(1)
 However, as a result of the automatic rescaling, the actual scale used was 0.0085.
 Furthermore,the default prior on the auxiliary parameter is an exponential distribution with rate ($\frac{1}{\sigma_{y}}$
 
 
-$Note \ on \ data-based \ priors$ \
+**Note on data-based priors** 
 Because the scaling is based on the scales of the predictors (and possibly the outcome) these are technically data-dependent priors. However, since these priors are quite wide (and in most cases rather conservative), the amount of information used is weak and mainly takes into account the order of magnitude of the variables. This enables rstanarm to offer defaults that are reasonable for many models.
 
 
@@ -504,9 +504,9 @@ as.table(res)
 ## makeVOLVO                      Normal       0      2261.67
 ```
 
-$\textbf{Median}$: regardless of the estimation algorithm, point estimates are medians computed from simulations.The simulations are generated from the asymptotic Gaussian sampling distribution of the parameters.
+**Median**: regardless of the estimation algorithm, point estimates are medians computed from simulations.The simulations are generated from the asymptotic Gaussian sampling distribution of the parameters.
 
-$\textbf{MAD_SD}$: The standard deviations reported (labeled MAD_SD in the print output) are computed from the same set of draws described above. Compared to the raw posterior standard deviation, the MAD_SD will be more robust for long-tailed distributions. 
+**MAD_SD**: The standard deviations reported (labeled MAD_SD in the print output) are computed from the same set of draws described above. Compared to the raw posterior standard deviation, the MAD_SD will be more robust for long-tailed distributions. 
 
 
 ```r
@@ -587,18 +587,18 @@ stan_model
 
 ##### 5.1.1 MODEL DIAGNOSTIC
 
-$Summary \ info$ \
-- mean: the point estimate for the parameter \
+**Summary  info**
+- mean: the point estimate for the parameter 
 - sd: standard error for the point estimate
 
-$Quick \ Diagnostic$ \
+**Quick Diagnostic**
 
--$\textbf{mean_PPD}$: mean(sample average) of the posterior predictive distribution (hopefully on par with the mean of the target variable (cO2-emission),if it is plausible then is a probable sign that our model is good in general)
+- **mean_PPD**: mean(sample average) of the posterior predictive distribution (hopefully on par with the mean of the target variable (cO2-emission),if it is plausible then is a probable sign that our model is good in general)
 
 
-$\textbf{Monte Carlo Standard Error}$: The standard error of the mean of the posterior draws. Want mcse than 10% of the posterior standard deviation.
+- **Monte Carlo Standard Error**: The standard error of the mean of the posterior draws. Want mcse than 10% of the posterior standard deviation.
 
-$\textbf{n_eff}$(The effective sample size): is an estimate of the effective number of independent draws from the posterior distribution of the estimand of interest. Because the draws within a chain are not independent if there is autocorrelation, the effective sample size will be smaller than the total number of iterations. Should be greater than 10% of max.
+- **n_eff**(The effective sample size): is an estimate of the effective number of independent draws from the posterior distribution of the estimand of interest. Because the draws within a chain are not independent if there is autocorrelation, the effective sample size will be smaller than the total number of iterations. Should be greater than 10% of max.
 
 $$ESS=\frac{G}{1+2\sum_{g=1}^G ACF_{g}}$$
 
@@ -766,11 +766,11 @@ $\hat{R}$ values are less than 1.1 so we this a sign that the chain reached the 
 ##### 5.1.2 MCMC DIAGNOSTIC
 
 
-$Trace \ Plot$ \ 
+$Trace \ Plot$ 
 
 It shows the estimated value of parameter at each iteration for each chain.It is used to check if the chains has reached the convergence.Furthermore,the iteration are discarded by the warmup(burn-in and thinning)
 
-Both $\hat{R}$ and $Trace \ Plot$ gives us information about the stability of our parameter/estimates.
+Both $\hat{R}$ and **Trace Plot** gives us information about the stability of our parameter/estimates.
 
 
 
@@ -1059,8 +1059,8 @@ Pointwise because you are calculating predictive density values for each point o
 Now, we use the loo package to calculate the elpd, that is estimated using cross-validation.
 
 $Procedure$: \
-1. We compare the elpd_loo of the two models, and which one is higher, probably is the better model. In  this case is model_1 \
-2. After we see the elpd_diff, if there will be a positive difference score, means that the second model is favored , whereas a \ negative score would indicate a preference for the first model. In this case , we prefer model_1 because has the difference is negative.
+1. We compare the elpd_loo of the two models, and which one is higher, probably is the better model. In  this case is model_1 
+2. After we see the elpd_diff, if there will be a positive difference score, means that the second model is favored , whereas a  negative score would indicate a preference for the first model. In this case , we prefer model_1 because has the difference is negative.
 
 
 Useful information
@@ -2188,7 +2188,7 @@ make_model_run <- jags(
 
 ##### 5.5.1 DIAGNOSTIC  ANALYSIS
 
-$Trace \ plot$
+**Trace plot**
 
 - $u_m^{(s)}$
 
@@ -2206,7 +2206,7 @@ for (i in 1:12){
 
 The plots show that there are no issues about convergence (no strange patterns appear).
 
-$Autocorrelation \ plot$
+**Autocorrelation plot**
 
 - $u_m^{(s)}$
 
@@ -2223,7 +2223,7 @@ for (i in 1:12){
 
 We can observe that there no high correlation between generated values.
 
-$Geweke \ test$
+**Geweke test**
 
 - $u_m^{(s)}$
 
@@ -2278,7 +2278,7 @@ paste(G_test_M)
 
 For every $u_m$ we can not reject null hypothesis, so we can conclude that the chain has reached the stationarity.
 
-$Effective \ sample \ size$
+**Effective sample size**
 
 - $u_m^{(s)}$
 
