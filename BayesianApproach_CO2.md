@@ -963,7 +963,7 @@ hist(r2_posterior, main="Posterior Distribution of the R^2",col="orange",border=
 
 ##### 5.1.5 Posterior  predictive  model  checks
 
-$Posterior\ Predictive$ \
+**Posterior Predictive** \
 is the distribution of possible unobserved values conditional on the observed value.
 In other words, given the posterior distributions of the parameters of the model, the posterior predictive distribution gives us some indication of what future data might look like, given the data and model of course.
 
@@ -974,7 +974,7 @@ We want compare the observed $y$ to simulated datasets $y^{rep}$ from the poster
 More specifically we compare our replicated predictions to our observed data more than one at a time. \
 By comparing our data to all replications, we can assess how well the model fits the data.
 
-$Density \ Overlay$ \
+**Density  Overlay** \
 Each light blue line represents the distribution of predicted scores from a single replications. \
 The dark blue line represents the observed data.\
 If the dark blue line should align closely with the light blue lines,the model fits well. 
@@ -989,7 +989,7 @@ pp_check(stan_model,'dens_overlay')
 
 
 
-3. $Posterior \ predictive \ test$
+3. **Posterior predictive test**
 
 
 The distribution of a (test) statistic $T(y^{rep})$ over the simulated datasets in $y^{rep}$, compared to the observed value T($y$) computed from the data $y$.
@@ -1038,7 +1038,7 @@ data=train.emission)
 
 In order to compare the quality of the posterior predictions of two model we adopted $elpd$
 
-The $elpd$ is the theoretical expected log pointwise predictive density
+The **elpd** is the theoretical expected log pointwise predictive density
 
 $$ E[log \ p(y_{pred}|y_{1}M_{1})]=\int_{pred}p_{y}(y_{pred})\ log \ p(y_{pred}|y_{1},M_{1})dy_{pred}$$
 The intuition behind Equation is that we are evaluating the predictive distribution of $M_{1}$
@@ -1059,7 +1059,7 @@ Pointwise because you are calculating predictive density values for each point o
 
 Now, we use the loo package to calculate the elpd, that is estimated using cross-validation.
 
-$Procedure$: \
+**Procedure**: 
 1. We compare the elpd_loo of the two models, and which one is higher, probably is the better model. In  this case is model_1 
 2. After we see the elpd_diff, if there will be a positive difference score, means that the second model is favored , whereas a  negative score would indicate a preference for the first model. In this case , we prefer model_1 because has the difference is negative.
 
@@ -1321,7 +1321,7 @@ summary(stan_model_spec)
 
 ##### 5.2.2 MCMC DIAGNOSTIC
 
-$TRACE \ PLOT$
+**TRACE PLOT**
 
 ```r
 posterior_chains3 <- as.array(stan_model_spec)
@@ -1348,7 +1348,7 @@ chains_trace_make_spec
 
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-35-3.png)<!-- -->
 
-$AFC \ PLOT$
+**AFC PLOT**
 
 ```r
 afc_quant_spec<-mcmc_acf(posterior_chains3,lags=15,pars = c("(Intercept)","engine_size_l","cylinders", "fuel_consumption_city_l_100_km" ,"fuel_consumption_hwy_l_100_km","sigma"))
@@ -1398,7 +1398,7 @@ mcmc_dens_make_spec
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-37-3.png)<!-- -->
 
 
-$Credible \ interval$
+**Credible interval**
 
 ```r
 posterior_interval(stan_model_spec)
@@ -1480,7 +1480,7 @@ pp_check(stan_model_spec,'dens_overlay')
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-40-1.png)<!-- -->
 
 
-$Posterior \ predictive \ test$ \
+**Posterior predictive test** \
 The standard deviation is not centered in the distribution of statistics standard deviation, we can spot that if we specified the prior we obtain worse prediction due to the fact that automated Stan algorithm is more precise with adjusted prior at each iterations.
 
 ```r
@@ -1578,7 +1578,7 @@ model_run <- jags(
 
 It is important to check if MCMC output is a good approximation of the true posterior distribution. 
 
-$Trace\ plot$
+**Trace plot**
 
 $\beta_j^{(s)}$ from JAGS output
 
@@ -1611,7 +1611,7 @@ for (i in 42:50){
 
 It is possible to see that in general there are no evident strange patterns and burn in. We can conclude that the chain has achieved stationarity.
 
-$Autocorrelation \ plot$
+**Autocorrelation plot**
 
 It is relevant to check if there is a strong autocorrelation between values taking into consideration different lags. For a generic sequence of numbers ${\theta_1, ..., \theta_S}$, the lag-k autocorrellation function estimates the correlation between elements of the sequence that are k steps apart: $$acf_k(\theta)=\frac{\frac{1}{S-k} \sum_{s=1}^{S-k}(\theta^{(s)}-\bar\theta)(\theta^{(s-k)}-\bar\theta)}{\frac{1}{S-k}\sum_{s=1}^{S-k}(\theta^{(s)}-
 \bar\theta)^2}$$ where $\bar\theta = \frac{1}{S-k} \sum_{s=1}^{S-k}\theta^{(s)}$. For $k = 0$, $acf_0(\theta) = 0$.
@@ -1642,7 +1642,7 @@ for (i in 42:50){
 
 It is possible to conclude that there is no high autocorrellation.
 
-$Geweke \ test$
+**Geweke test**
 
 Now we used Geweke test to see if the chains has converged. We want to check if statistics computed from different portions of the chains are similar. Geweke statistics is: $$Z_n = \frac{\bar\theta_I - \bar\theta_L}{\sqrt{\hat s_I^2 + \hat s_L^2}} \sim N(0,1)$$ as $n$ goes to.
 
@@ -1692,7 +1692,7 @@ paste(G_test_beta)
 
 In general we can not rejected the stationary hypothesis.
 
-$Effective \ sample\ size$ 
+**Effective sample size**
 $$ESS = \frac{G}{1+2 \sum_{g=1}^{G} acf_g}$$ 
 with G the number of post burn-in in MCMC samples. 
 If all $acf_g = 0$, then $ESS = G$.
@@ -1792,7 +1792,7 @@ In Poisson regression model there is a strong assumption: $E(Y)=VAR(Y)=\lambda$.
 
 Now we determine posterior expectation of every parameter thanks to approximated posterior distribution of $\beta^{(s)}$. Through quantile function, we calculate credible intervals to study the significance of parameters.
 
-$Posterior \ mean \ of \ parameter$
+**Posterior mean of parameter**
 
 
 ```r
