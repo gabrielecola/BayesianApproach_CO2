@@ -384,6 +384,7 @@ data=train.emission)
 ```
 
 $Brief \ Summary$ 
+
 **Intercept**: For the intercept, the default prior is normal with a standard deviation 2.5, but in this case the standard deviation was adjusted to 294. There is also a note in parentheses informing you that the prior applies to the intercept after all predictors have been centered , this because placing a prior on the intercept after centering the predictors typically makes it easier to specify a reasonable prior for the intercept. 
 
 **Coefficients**: By default the regression coefficients are treated as a priori independent with normal priors centered at 0 and with scale (standard deviation) 2.5.\
@@ -391,7 +392,7 @@ rstanarm by default set a weakly informative prior that will be adjusted by the 
 
 **Auxiliary** : sigma, the error standard deviation, has a default prior that is exponential(1)
 However, as a result of the automatic rescaling, the actual scale used was 0.0085.
-Furthermore,the default prior on the auxiliary parameter is an exponential distribution with rate ($\frac{1}{\sigma_{y}}$
+Furthermore,the default prior on the auxiliary parameter is an exponential distribution with rate ($\frac{1}{\sigma_{y}})$
 
 
 **Note on data-based priors** 
@@ -859,9 +860,9 @@ mcmc_dens_make
 ![](BayesianApproach_CO2_files/figure-html/unnamed-chunk-23-3.png)<!-- -->
 
 
-$Credible\ Interval$
+**Credible Interval**
 
-We can conclude that engine_size_l is not significant.
+We can conclude that **engine_size_l** is not significant.
 
 ```r
 posterior_interval(stan_model)
@@ -927,7 +928,7 @@ posterior_interval(stan_model)
 
 
 $$R^{2}=\frac{Var_{\mu}}{Var_{\mu}+Var_{res}} $$
-where $Var_{\mu}$is variance of modelled predictive median\
+where $Var_{\mu}$ is variance of modelled predictive median\
 and $Var_{res}$ is the modelled residual variance.\
 Specifically both of these are computed only using posterior quantities from the fitted model.
 
@@ -950,7 +951,7 @@ print(paste('R Squared is :',round(r2,2)))
 Here The $R^2$ is high so we can say that the models fits well the data.
 
 
-1. $R^{2} Posterior \ Distribution$ \
+1. **$R^{2}$ Posterior Distribution** \
 Let's get a posterior distribution of the R-squared.
 
 ```r
@@ -966,7 +967,7 @@ $Posterior\ Predictive$ \
 is the distribution of possible unobserved values conditional on the observed value.
 In other words, given the posterior distributions of the parameters of the model, the posterior predictive distribution gives us some indication of what future data might look like, given the data and model of course.
 
-$$p(y^{*}|y_{1},....,y_{n})=\int\ p(y^{*}|\beta,\sigma^{2}) \ p(\beta,\sigma^{2}|y)\ d\beta\ d\sigma^{2}$$
+ $$p(y^{*}|y_{1},....,y_{n})=\int\ p(y^{*}|\beta,\sigma^{2}) \ p(\beta,\sigma^{2}|y)\ d\beta\ d\sigma^{2}$$
 
 
 We want compare the observed $y$ to simulated datasets $y^{rep}$ from the posterior predictive distribution.
